@@ -17,7 +17,7 @@ Verge3D can be used to create product configurators, 3D presentations, online st
 
 == Installation ==
 
-1. Install and activate the plugin via the \"Plugins\" menu in WordPress admin interface.
+1. Install and activate the plugin via the "Plugins" menu in WordPress admin interface.
 2. Verge3D menu should appear in the admin panel.
 3. Use the Verge3D->Settings submenu to configure the plugin.
 4. To upload applications on your server you need to have a modern browser such as Google Chrome, Firefox, Edge or Safari 11.1+.
