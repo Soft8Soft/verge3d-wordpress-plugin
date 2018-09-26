@@ -1,0 +1,12 @@
+.v3d-hint {
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 1px 1px rgba(0,0,0,.04);
+  background: #fff;
+  padding: .1em 1.5em;
+  margin-top: 10px;
+} 
+
+.v3d-admin-screenshot {
+    min-width: 200px;
+    max-width: 95%;
+}
