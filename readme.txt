@@ -4,7 +4,7 @@ Tags: verge3d,3d,webgl,3dweb,web3d
 Requires at least: 4.7
 Tested up to: 4.9.5
 Requires PHP: 5.6
-Stable tag: 2.7.1
+Stable tag: 2.8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,6 +31,9 @@ No questions yet. Please ask them on the [Verge3D Forums](https://www.soft8soft.
 3. Managing orders
 
 == Changelog ==
+
+= 2.8 =
+* Fixed issue in applications with multiple HTML files
 
 = 2.7.1 =
 * Minor update, fixes possible security issues

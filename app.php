@@ -527,10 +527,12 @@ function v3d_get_app_url($app_id) {
     if (empty($htmls))
         return '';
 
-    $html = array_search('index.html', $htmls);
+    $html_idx = array_search('index.html', $htmls);
 
-    if (empty($html))
+    if ($html_idx === false)
        $html = $htmls[0];
+    else
+       $html = $htmls[$html_idx];
 
     $url = v3d_get_upload_url().$app_id.'/'.$html;
 
