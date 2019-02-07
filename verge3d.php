@@ -3,7 +3,7 @@
 Plugin Name: Verge3D
 Plugin URI: https://www.soft8soft.com/verge3d
 Description: Verge3D is the most artist-friendly toolkit for creating interactive web-based experiences. It can be used to create product configurators, 3D presentations, online stores, e-learning apps, 3D portfolios, browser games and more.
-Version: 2.8.0
+Version: 2.10.0
 Author: Soft8Soft LLC
 Author URI: https://www.soft8soft.com
 License: GPLv2 or later
@@ -266,6 +266,12 @@ function v3d_get_upload_url() {
 }
 
 function v3d_get_template($name) {
-    return plugin_dir_path(__FILE__).'templates/'.$name;
+
+    $v3d_theme_dir = get_stylesheet_directory().'/verge3d/';
+
+    if (is_file($v3d_theme_dir.$name))
+        return $v3d_theme_dir.$name;
+    else
+        return plugin_dir_path(__FILE__).'templates/'.$name;
 }
 

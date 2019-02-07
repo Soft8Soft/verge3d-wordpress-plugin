@@ -4,15 +4,6 @@ if (!class_exists('WP_List_Table')){
     require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
 }
 
-// for Captcha
-function start_session() {
-    if (!session_id()) {
-        session_start();
-    }
-}
-add_action('init', 'start_session', 1);
-
-
 function v3d_order_menu()
 {
     if (!current_user_can('manage_verge3d')) {
@@ -23,44 +14,15 @@ function v3d_order_menu()
     $action = (!empty($_REQUEST['action'])) ? sanitize_text_field($_REQUEST['action']) : '';
 
     switch ($action) {
-    case 'create':
-        $order = array(
-            'title' => '',
-            'content' => '',
-            'price' => '0',
-            'screenshot' => '',
-            'user_name' => '',
-            'user_email' => '',
-            'user_tel' => '',
-            'user_comment' => '',
-        );
+    case 'createform':
+        $order = array();
         v3d_display_order($order, -1);
         break;
-    case 'createorder':
-
-        $order = array(
-            'title' => (!empty($_REQUEST['title'])) ?
-                    sanitize_text_field($_REQUEST['title']) : 'Unknown Order',
-            'content' => (!empty($_REQUEST['content'])) ?
-                    sanitize_textarea_field($_REQUEST['content']) : '',
-            'price' => (!empty($_REQUEST['price'])) ?
-                    sanitize_text_field($_REQUEST['price']) : '0',
-            'screenshot' => (!empty($_REQUEST['screenshot'])) ?
-                    sanitize_text_field($_REQUEST['screenshot']) : '',
-            'user_name' => (!empty($_REQUEST['user_name'])) ?
-                    sanitize_text_field($_REQUEST['user_name']) : '',
-            'user_email' => (!empty($_REQUEST['user_email'])) ?
-                    sanitize_email($_REQUEST['user_email']) : '',
-            'user_tel' => (!empty($_REQUEST['user_tel'])) ?
-                    sanitize_text_field($_REQUEST['user_tel']) : '',
-            'user_comment' => (!empty($_REQUEST['user_comment'])) ?
-                    sanitize_textarea_field($_REQUEST['user_comment']) : '',
-        );
-
-        v3d_create_order($order);
+    case 'create':
+        v3d_create_order(v3d_request_to_order());
         v3d_redirect_order_list();
         break;
-    case 'edit':
+    case 'editform':
         $order_id = intval($_REQUEST['order']);
 
         if (empty($order_id)) {
@@ -68,49 +30,16 @@ function v3d_order_menu()
             return;
         }
 
-        $order = array(
-            'title' => get_the_title($order_id),
-            'content' => get_post_field('post_content', $order_id),
-            'price' => get_post_meta($order_id, 'price', true),
-            'screenshot' => get_post_meta($order_id, 'screenshot', true),
-            'user_name' => get_post_meta($order_id, 'user_name', true),
-            'user_email' => get_post_meta($order_id, 'user_email', true),
-            'user_tel' => get_post_meta($order_id, 'user_tel', true),
-            'user_comment' => get_post_meta($order_id, 'user_comment', true),
-        );
-
+        $order = json_decode(get_post_field('post_content', $order_id), true);
         v3d_display_order($order, $order_id);
 
         break;
-    case 'editorder':
+    case 'edit':
         if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($_REQUEST['order'])) {
             $order_id = intval($_REQUEST['order']);
 
             if (!empty($_REQUEST['title']) || !empty($_REQUEST['content'])) {
-                $post_arr = array(
-                    'ID'           => $order_id,
-                    'post_title'   => (!empty($_REQUEST['title'])) ?
-                            sanitize_text_field($_REQUEST['title']) : '',
-                    'post_content'   => (!empty($_REQUEST['content'])) ?
-                            sanitize_textarea_field($_REQUEST['content']) : '',
-                    'post_status'  => 'publish',
-                    'post_type'    => 'v3d_order',
-                    'meta_input'   => array(
-                        'price' => (!empty($_REQUEST['price'])) ?
-                                sanitize_text_field($_REQUEST['price']) : '0',
-                        'screenshot' => (!empty($_REQUEST['screenshot'])) ? 
-                                sanitize_text_field($_REQUEST['screenshot']) : '',
-                        'user_name' => (!empty($_REQUEST['user_name'])) ?
-                                sanitize_text_field($_REQUEST['user_name']) : '',
-                        'user_email' => (!empty($_REQUEST['user_email'])) ?
-                                sanitize_email($_REQUEST['user_email']) : '',
-                        'user_tel' => (!empty($_REQUEST['user_tel'])) ?
-                                sanitize_text_field($_REQUEST['user_tel']) : '',
-                        'user_comment' => (!empty($_REQUEST['user_comment'])) ?
-                                sanitize_textarea_field($_REQUEST['user_comment']) : '',
-                    ),
-                );
-                wp_update_post($post_arr);
+                v3d_update_order($order_id, v3d_request_to_order());
             }
 
             v3d_redirect_order_list();
@@ -126,13 +55,15 @@ function v3d_order_menu()
             $order = $_REQUEST['order'];
 
             // process bulk request
-            if (is_array($order))
+            if (is_array($order)) {
                 foreach ($order as $o)
                     if (!empty(intval($o)))
                         v3d_delete_order(intval($o));
-            else
-                if (!empty(intval($order)))
+            } else {
+                if (!empty(intval($order))) {
                     v3d_delete_order($order);
+                }
+            }
 
             v3d_redirect_order_list();
         } else {
@@ -144,13 +75,13 @@ function v3d_order_menu()
     default:
         $orderTable = new V3D_Order_List_Table();
         $orderTable->prepare_items();
-        
+
         ?>
         <div class="wrap">
           <div id="icon-users" class="icon32"><br/></div>
 
           <h1 class='wp-heading-inline'>E-Commerce Orders</h1>
-          <a href="?page=verge3d_order&action=create" class="page-title-action">Add New</a>
+          <a href="?page=verge3d_order&action=createform" class="page-title-action">Add New</a>
 
           <div class="v3d-hint">
             <p>To handle orders sent from a Verge3D application (generated with "send order" puzzle) add an order form to a web page/post using <code>[verge3d_order]</code> shortcode.</p>
@@ -172,21 +103,12 @@ function v3d_order_menu()
 
 function v3d_create_order($order) {
     $post_arr = array(
-        'post_title'   => $order['title'],
-        'post_content'   => $order['content'],
+        'post_title'   => '',
+        'post_content' => json_encode($order, JSON_UNESCAPED_UNICODE),
         'post_status'  => 'publish',
-        'post_type'    => 'v3d_order',
-        'meta_input'   => array(
-            'price' => $order['price'],
-            'screenshot' => $order['screenshot'],
-            'user_name' => $order['user_name'],
-            'user_email' => $order['user_email'],
-            'user_tel' => $order['user_tel'],
-            'user_comment' => $order['user_comment'],
-        ),
+        'post_type'    => 'v3d_order'
     );
     wp_insert_post($post_arr);
-
     
     $order_email = get_option('v3d_order_email');
     $order_from_name = get_option('v3d_order_email_from_name');
@@ -223,95 +145,50 @@ function v3d_create_order($order) {
     }
 }
 
-function v3d_display_order($order, $order_id) {
-    $title = $order['title'];
-    $content = $order['content'];
-    $price = $order['price'];
-    $screenshot = $order['screenshot'];
-    $user_name = $order['user_name'];
-    $user_email = $order['user_email'];
-    $user_tel = $order['user_tel'];
-    $user_comment = $order['user_comment'];
+function v3d_update_order($order_id, $order) {
+    $post_arr = array(
+        'ID'           => $order_id,
+        'post_title'   => '',
+        'post_content' => json_encode($order, JSON_UNESCAPED_UNICODE),
+        'post_status'  => 'publish',
+        'post_type'    => 'v3d_order'
+    );
 
-    ?>
-    <div class="wrap">
-      <h1 class="wp-heading-inline"><?php echo $order_id > -1 ? 'Update Order' : 'Create Order' ?></h1>
-      <form method="post" id="updateorderform">
-        <input type="hidden" name="page" value="<?php echo sanitize_text_field($_REQUEST['page']) ?>" />
-        <input type="hidden" name="action" value="<?php echo $order_id > -1 ? 'editorder' : 'createorder' ?>" />
-        <input type="hidden" name="order" value="<?php echo $order_id ?>" />
-        <table class="form-table">
-          <tbody>
-            <tr class="form-field form-required">
-              <th scope="row">
-                <label for="title">Title <span class="description">(required)</span></label>
-              </th>
-              <td>
-                <input type="text" name="title" id="title" value="<?php echo $title ?>" required="true" autocapitalize="none" autocorrect="off" maxlength="200">
-              </td>
-            </tr>
-            <tr class="form-field form-required">
-              <th scope="row">
-                <label for="content">Content <span class="description">(required)</span></label>
-              </th>
-              <td>
-                <input type="text" name="content" id="content" value="<?php echo $content ?>" required="true" autocapitalize="none" autocorrect="off" maxlength="200">
-              </td>
-            </tr>
-            <tr class="form-field form-required">
-              <th scope="row">
-                <label for="price">Total Price <span class="description">(required)</span></label>
-              </th>
-              <td>
-                <input type="text" name="price" id="price" value="<?php echo $price ?>" required="true" >
-              </td>
-            </tr>
-            <tr class="form-field form-required">
-              <th scope="row">
-                <label for="user_name">Customer Name <span class="description">(required)</span></label>
-              </th>
-              <td>
-                <input type="text" name="user_name" id="user_name" value="<?php echo $user_name ?>" required="true" >
-              </td>
-            </tr>
-            <tr class="form-field form-required">
-              <th scope="row">
-                <label for="user_email">Customer E-Mail <span class="description">(required)</span></label>
-              </th>
-              <td>
-                <input type="email" name="user_email" id="user_email" value="<?php echo $user_email ?>" required="true" >
-              </td>
-            </tr>
-            <tr class="form-field form-required">
-              <th scope="row">
-                <label for="user_tel">Customer Phone <span class="description">(required)</span></label>
-              </th>
-              <td>
-                <input type="tel" name="user_tel" id="user_tel" value="<?php echo $user_tel ?>" required="true" >
-              </td>
-            </tr>
-            <tr class="form-field">
-              <th scope="row">
-                <label for="user_comment">Comments</label>
-              </th>
-              <td>
-                <input type="tel" name="user_comment" id="user_comment" value="<?php echo $user_comment ?>">
-              </td>
-            </tr>
-            <tr class="form-field">
-              <th scope="row">
-                <label for="screenshot">Screenshot</label>
-              </th>
-              <td>
-                <img src="<?php echo $screenshot ?>" id="screenshot" class="v3d-admin-screenshot">
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="submit"><input type="submit" class="button button-primary"></p>
-      </form>
-    </div>
-    <?php
+    wp_update_post($post_arr);
+}
+
+function v3d_request_to_order() {
+    $order = array();
+
+    $IGNORED_KEYS = ['page', 'action', 'order'];
+
+    foreach ($_POST as $key => $value) {
+        if (in_array($key, $IGNORED_KEYS, true))
+            continue;
+
+        // allow multi-dimensional keys, separated by ":"
+        $keys = strpos($key, ':') !== false ? explode(':', $key) : array($key);
+
+        $ptr = &$order;
+
+        foreach ($keys as $k) {
+            if (!isset($ptr[$k])) {
+                $ptr[$k] = array();
+            }
+            $ptr = &$ptr[$k];
+        }
+        if (empty($ptr)) {
+            $ptr = $value;
+        } else {
+            $ptr[] = $value;
+        }
+    }
+
+    return $order;
+}
+
+function v3d_display_order($order, $order_id) {
+    include v3d_get_template('order_admin_form.php');
 }
 
 function v3d_delete_order($order_id) {
@@ -344,15 +221,14 @@ class V3D_Order_List_Table extends WP_List_Table {
 
     function column_default($item, $column_name){
         switch ($column_name) {
-        case 'content':
         case 'price':
         case 'user_name':
         case 'user_email':
-        case 'user_tel':
+        case 'user_phone':
         case 'date':
             return $item[$column_name];
         default:
-            return print_r($item, true); //Show the whole array for troubleshooting purposes
+            return print_r($item, true); // show the whole array for troubleshooting purposes
         }
     }
 
@@ -361,7 +237,7 @@ class V3D_Order_List_Table extends WP_List_Table {
         // Build row actions
         $actions = array(
             'edit'      => sprintf('<a href="?page=%s&action=%s&order=%s">Edit</a>',
-                    sanitize_text_field($_REQUEST['page']), 'edit', $item['ID']),
+                    sanitize_text_field($_REQUEST['page']), 'editform', $item['ID']),
             'delete'    => sprintf('<a href="?page=%s&action=%s&order=%s">Delete</a>',
                     sanitize_text_field($_REQUEST['page']), 'delete', $item['ID']),
         );
@@ -385,11 +261,10 @@ class V3D_Order_List_Table extends WP_List_Table {
         $columns = array(
             'cb'      => '<input type="checkbox" />', //Render a checkbox instead of text
             'title'   => 'Title',
-            'content' => 'Content',
             'price'   => 'Total Price',
             'user_name'   => 'Customer',
             'user_email'   => 'Customer Email',
-            'user_tel'   => 'Phone Number',
+            'user_phone'   => 'Phone Number',
             'date'    => 'Date',
         );
         return $columns;
@@ -401,7 +276,7 @@ class V3D_Order_List_Table extends WP_List_Table {
             'price'      => array('price', false),
             'user_name'  => array('user_name', false),
             'user_email' => array('user_email', false),
-            'user_tel'   => array('user_tel', false),
+            'user_phone' => array('user_phone', false),
             'date'       => array('date', false),
         );
         return $sortable_columns;
@@ -463,16 +338,16 @@ class V3D_Order_List_Table extends WP_List_Table {
         $posts = array();
 
         foreach ($q_posts as $q_post) {
-            $email = get_post_meta($q_post->ID, 'user_email', true);
+
+            $content = json_decode($q_post->post_content, true);
 
             $posts[] = array(
                 'ID'     => $q_post->ID,
-                'title'  => $q_post->post_title,
-                'content'  => $q_post->post_content,
-                'price' => get_post_meta($q_post->ID, 'price', true),
-                'user_name' => get_post_meta($q_post->ID, 'user_name', true),
-                'user_email' => '<a href="mailto:'.$email.'">'.$email.'</a>',
-                'user_tel' => get_post_meta($q_post->ID, 'user_tel', true),
+                'title'  => (!empty($content['title'])) ? $content['title'] : 'N/A',
+                'price'  => (!empty($content['price'])) ? $content['price'] : 'N/A',
+                'user_name'  => (!empty($content['user_name'])) ? $content['user_name'] : 'N/A',
+                'user_email'  => (!empty($content['user_email'])) ? $content['user_email'] : 'N/A',
+                'user_phone'  => (!empty($content['user_phone'])) ? $content['user_phone'] : 'N/A',
                 'date'   => $q_post->post_date,
             );
         }
@@ -507,60 +382,57 @@ function v3d_order_shortcode($atts = [], $content = null, $tag = '')
 
     $screenshot = '';
     if (!empty($_REQUEST['v3d_screenshot'])) {
-        $screenshot = sanitize_text_field($_REQUEST['v3d_screenshot']);
-
         if ($action != 'submit') {
-            $screenshot = str_replace('data:image/png;base64,', '', $screenshot);
-            $screenshot = str_replace(' ', '+', $screenshot);
-
-            $upload_dir = v3d_get_upload_dir();
-            $screenshot_dir = $upload_dir.'screenshots/'; 
-            if (!is_dir($screenshot_dir)) {
-                mkdir($screenshot_dir, 0777, true);
-            }
-
-            $data = base64_decode($screenshot);
-            $file = $screenshot_dir.time().'.png';
-            $success = file_put_contents($file, $data);
-            if ($success)
-                $screenshot = v3d_get_upload_url().'screenshots/'.basename($file);
+            $screenshot = v3d_save_screenshot(sanitize_text_field($_REQUEST['v3d_screenshot']));
+        } else {
+            $screenshot = sanitize_text_field($_REQUEST['v3d_screenshot']);
         }
     }
 
     $user_name = (!empty($_REQUEST['v3d_user_name'])) ? sanitize_text_field($_REQUEST['v3d_user_name']) : '';
     $user_email = (!empty($_REQUEST['v3d_user_email'])) ? sanitize_email($_REQUEST['v3d_user_email']) : '';
-    $user_tel = (!empty($_REQUEST['v3d_user_tel'])) ? sanitize_text_field($_REQUEST['v3d_user_tel']) : '';
+    $user_phone = (!empty($_REQUEST['v3d_user_phone'])) ? sanitize_text_field($_REQUEST['v3d_user_phone']) : '';
     $user_comment = (!empty($_REQUEST['v3d_user_comment'])) ? sanitize_textarea_field($_REQUEST['v3d_user_comment']) : '';
 
     if ($action == 'submit') {
-        if ($_SESSION['captcha_string'] == sanitize_text_field($_REQUEST["v3d_captcha"])) {
-            v3d_create_order(array(
-                'title' => $title,
-                'content' => $content,
-                'price' => $price,
-                'screenshot' => $screenshot,
-                'user_name' => $user_name,
-                'user_email' => $user_email,
-                'user_tel' => $user_tel,
-                'user_comment' => $user_comment,
-            ));
-            ob_start();
-            include v3d_get_template('order_success.php');
-            return ob_get_clean();
-        } else {
-            ob_start();
-            include v3d_get_template('order_failed.php');
-            return ob_get_clean();
-        }
+        v3d_create_order(array(
+            'title' => $title,
+            'content' => $content,
+            'price' => $price,
+            'screenshot' => $screenshot,
+            'user_name' => $user_name,
+            'user_email' => $user_email,
+            'user_phone' => $user_phone,
+            'user_comment' => $user_comment,
+        ));
+        ob_start();
+        include v3d_get_template('order_success.php');
+        return ob_get_clean();
     } else {
-        $_SESSION['count'] = time();
-        v3d_create_captcha();
-        $captcha_url = v3d_get_upload_url().'captcha/'.$_SESSION['count'].'.png';
-
         ob_start();
         include v3d_get_template('order_form.php');
         return ob_get_clean();
     }
+}
+
+function v3d_save_screenshot($data_url) {
+
+    $data_url = str_replace('data:image/png;base64,', '', $data_url);
+    $data_url = str_replace(' ', '+', $data_url);
+
+    $upload_dir = v3d_get_upload_dir();
+    $screenshot_dir = $upload_dir.'screenshots/'; 
+    if (!is_dir($screenshot_dir)) {
+        mkdir($screenshot_dir, 0777, true);
+    }
+
+    $data = base64_decode($data_url);
+    $file = $screenshot_dir.time().'.png';
+    $success = file_put_contents($file, $data);
+    if ($success)
+        return v3d_get_upload_url().'screenshots/'.basename($file);
+    else
+        return '';
 }
  
 function v3d_order_shortcode_init() {
@@ -577,45 +449,37 @@ function v3d_redirect_order_list() {
     <?php
 }
 
-function v3d_create_captcha()
-{
-    global $image;
-    $image = imagecreatetruecolor(150, 40) or die("Cannot Initialize new GD image stream");
-    $background_color = imagecolorallocate($image, 255, 255, 255);
-    $text_color = imagecolorallocate($image, 0, 255, 255);
-    $line_color = imagecolorallocate($image, 64, 64, 64);
-    $pixel_color = imagecolorallocate($image, 128, 128, 255);
-    imagefilledrectangle($image, 0, 0, 150, 40, $background_color);
-    //for ($i = 0; $i < 3; $i++) {
-    //    imageline($image, 0, rand() % 40, 150, rand() % 40, $line_color);
-    //}
-    for ($i = 0; $i < 500; $i++) {
-        imagesetpixel($image, rand() % 150, rand() % 40, $pixel_color);
-    }
-    $letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    $len = strlen($letters);
-    $letter = $letters[rand(0, $len - 1)];
-    $text_color = imagecolorallocate($image, 0, 0, 0);
-    $word = "";
-    for ($i = 0; $i < 6; $i++) {
-        $letter = $letters[rand(0, $len - 1)];
-        imagestring($image, 5, 20 + ($i * 20), 12, $letter, $text_color);
-        $word .= $letter;
-    }
-    $_SESSION['captcha_string'] = $word;
 
-    $upload_dir = v3d_get_upload_dir();
-    $captcha_dir = $upload_dir.'captcha/';
+function v3d_api_place_order(WP_REST_Request $request) {
+  
+    $params = $request->get_json_params();
 
-    if (!is_dir($captcha_dir)) {
-        mkdir($captcha_dir, 0777, true);
+    if (!empty($params)) {
+
+        if (!empty($params['screenshot']))
+            $params['screenshot'] = v3d_save_screenshot($params['screenshot']);
+
+        v3d_create_order($params);
+
+        $response = new WP_REST_Response(
+            array(
+                'order' => 'ok',
+            )
+        );
+    } else {
+
+        $response = new WP_Error('wrong_order_params', 'Wrong order params', array('status' => 400));
+
     }
 
-    $images = glob($captcha_dir.'*.png');
+    $response->header('Access-Control-Allow-Origin', '*');
+    return $response;
 
-    foreach ($images as $image_to_delete) {
-        @unlink($image_to_delete);
-    }
-    imagepng($image, $captcha_dir . $_SESSION['count'] . ".png");
 }
 
+add_action('rest_api_init', function () {
+    register_rest_route('verge3d/v1', '/place_order', array(
+        'methods' => 'POST',
+        'callback' => 'v3d_api_place_order',
+    ));
+});

@@ -43,7 +43,7 @@
             <label for="textarea">Content</label>
           </th>
           <td>
-            <textarea name="textarea" readonly><?php echo $content ?></textarea>
+            <textarea name="textarea" readonly><?php echo esc_html($content) ?></textarea>
           </td>
         </tr>
         <tr class="form-field form-required">
@@ -51,7 +51,7 @@
             <label for="v3d_price">Total Price</label>
           </th>
           <td>
-            <input type="text" name="v3d_price" id="v3d_price" value="<?php echo $price ?>" required="true" readonly>
+            <input type="text" name="v3d_price" id="v3d_price" value="<?php echo esc_html($price) ?>" required="true" readonly>
           </td>
         </tr>
         <tr class="form-field form-required">
@@ -72,10 +72,10 @@
         </tr>
         <tr class="form-field form-required">
           <th scope="row">
-            <label for="v3d_user_tel">Your Phone <span class="v3d-asterix">*</span></label>
+            <label for="v3d_user_phone">Your Phone <span class="v3d-asterix">*</span></label>
           </th>
           <td>
-            <input type="tel" name="v3d_user_tel" id="v3d_user_tel" value="" required="true" >
+            <input type="tel" name="v3d_user_phone" id="v3d_user_phone" value="" required="true" >
           </td>
         </tr>
         <tr class="form-field">
@@ -92,14 +92,6 @@
           </th>
           <td>
             <img src="<?php echo $screenshot ?>" id="v3d_screenshot" style="min-width:200px">
-          </td>
-        </tr>
-        <tr class="form-field form-required">
-          <th scope="row">
-            <img src="<?php echo $captcha_url ?>" style="min-width:150px; vertical-align:top;">
-          </th>
-          <td>
-            <input type="text" name="v3d_captcha" id="v3d_captcha" value="" required="true" >
           </td>
         </tr>
       </tbody>

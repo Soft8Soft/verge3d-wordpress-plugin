@@ -34,7 +34,7 @@
             Content
           </th>
           <td>
-            <?php echo $order['content'] ?>
+            <?php echo esc_html($order['content']) ?>
           </td>
         </tr>
         <tr class="form-field">
@@ -42,7 +42,7 @@
             Total Price
           </th>
           <td>
-            <?php echo $order['price'] ?>
+            <?php echo esc_html($order['price']) ?>
           </td>
         </tr>
         <tr class="form-field">
@@ -50,7 +50,7 @@
             Email
           </th>
           <td>
-            <?php echo $order['user_email'] ?>
+            <?php echo esc_html($order['user_email']) ?>
           </td>
         </tr>
         <tr class="form-field">
@@ -58,7 +58,7 @@
             Phone
           </th>
           <td>
-            <?php echo $order['user_tel'] ?>
+            <?php echo esc_html($order['user_phone']) ?>
           </td>
         </tr>
         <tr class="form-field">
@@ -66,7 +66,7 @@
             Comments
           </th>
           <td>
-            <?php echo $order['user_comment'] ?>
+            <?php echo esc_html($order['user_comment']) ?>
           </td>
         </tr>
       </tbody>

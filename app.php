@@ -184,13 +184,14 @@ function v3d_app_menu() {
             $app = $_REQUEST['app'];
 
             // process bulk request
-            if (is_array($app))
+            if (is_array($app)) {
                 foreach ($app as $a)
                     if (!empty(intval($a)))
                         v3d_delete_app(intval($a));
-            else
+            } else {
                 if (!empty(intval($app)))
                     v3d_delete_app(intval($app));
+            }
 
             v3d_redirect_app_list();
         } else {
