@@ -19,19 +19,15 @@
     .form-table td {
       padding: 10px;
     }
+    @media print {
+      @page { margin: 0; }
+      body { margin: 1.6cm; }
+    }
   </style>
 </head>
 
 <body>
   <div class="wrap">
-
-    <p><?php
-      if ($to == $order['user_email'])
-          echo 'Thank you for your order! We\'re processing it now and will contact with you soon.';
-      else
-          echo 'You\'ve received a new customer order from '.$order['user_name'];
-    ?></p>
-
     <h2>Order details</h2>
 
     <table class="form-table">

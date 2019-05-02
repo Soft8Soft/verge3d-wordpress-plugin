@@ -87,7 +87,7 @@ function v3d_order_menu()
             <p>To handle orders sent from a Verge3D application (generated with "send order" puzzle) add an order form to a web page/post using <code>[verge3d_order]</code> shortcode.</p>
             <p>Specify the link to that page/post in the "send order" puzzle to make it work.</p>
           </div>
-          
+
           <form id="orders-filter" method="get">
             <!-- For plugins, we also need to ensure that the form posts back to our current page -->
             <input type="hidden" name="page" value="<?php echo sanitize_text_field($_REQUEST['page']) ?>" />
@@ -108,41 +108,184 @@ function v3d_create_order($order) {
         'post_status'  => 'publish',
         'post_type'    => 'v3d_order'
     );
-    wp_insert_post($post_arr);
-    
+
+    $order = apply_filters('v3d_create_order', $order);
+    if (empty($order))
+        return false;
+
+    // to use it inside templates
+    $order_id = wp_insert_post($post_arr);
+
     $order_email = get_option('v3d_order_email');
     $order_from_name = get_option('v3d_order_email_from_name');
     $order_from_email = get_option('v3d_order_email_from_email');
 
-    $headers[] = 'Content-Type: text/html; charset=UTF-8';
-    if (!empty($order_from_name) || !empty($order_from_email)) {
-        $headers[] = 'From: "'.$order_from_name.'" <'.$order_from_email.'>';
-    }
-
-    ob_start();
-    include v3d_get_template('order_email_body.php');
-    $body_template = ob_get_clean();
-    
     $attachments = array();
-    if (!empty($order['screenshot'])) {
-        $scr_file = v3d_get_upload_dir().'screenshots/'.basename($order['screenshot']);
-        if (is_file($scr_file))
-            $attachments[] = $scr_file;
+
+    if (!empty($order_email) || !empty($order['user_email'])) {
+        $headers[] = 'Content-Type: text/html; charset=UTF-8';
+        if (!empty($order_from_name) || !empty($order_from_email)) {
+            $headers[] = 'From: "'.$order_from_name.'" <'.$order_from_email.'>';
+        }
+
+        $attachments = v3d_gen_email_attachments($order, $order_id, get_option('v3d_order_email_attach_pdf'));
     }
 
     if (!empty($order_email)) {
         $to = $order_email;
-        $subject = 'New order notification';
-        $body = $body_template;
+        $subject = get_option('v3d_order_email_subject');
+
+        ob_start();
+        include v3d_get_template('order_email_body.php');
+        $body = ob_get_clean();
+
         wp_mail($to, $subject, $body, $headers, $attachments);
     }
 
     if (!empty($order['user_email'])) {
         $to = $order['user_email'];
-        $subject = 'Order notification';
-        $body = $body_template;
+        $subject = get_option('v3d_order_email_subject');
+
+        ob_start();
+        include v3d_get_template('order_email_body.php');
+        $body = ob_get_clean();
+
         wp_mail($to, $subject, $body, $headers, $attachments);
     }
+
+    v3d_cleanup_email_attachments($attachments);
+
+    return true;
+}
+
+/**
+ * Exec external program in a portable way
+ * https://www.binarytides.com/execute-shell-commands-php/
+ */
+function v3d_terminal($command) {
+    // system
+    if (function_exists('system')) {
+        ob_start();
+        system($command , $return_var);
+        $output = ob_get_contents();
+        ob_end_clean();
+    }
+    // passthru
+    else if (function_exists('passthru')) {
+        ob_start();
+        passthru($command , $return_var);
+        $output = ob_get_contents();
+        ob_end_clean();
+    }
+    // exec
+    else if (function_exists('exec')) {
+        exec($command , $output , $return_var);
+        $output = implode("n" , $output);
+    }
+    // shell_exec
+    else if (function_exists('shell_exec')) {
+        $output = shell_exec($command) ;
+    }
+    else {
+        $output = 'Command execution not possible on this system';
+        $return_var = 1;
+    }
+
+    return array('output' => $output , 'status' => $return_var);
+}
+
+function v3d_get_chrome_path() {
+
+    $chrome_path = get_option('v3d_chrome_path');
+
+    if (!empty($chrome_path))
+        return $chrome_path;
+
+    # perform search in system paths
+
+    $CHROME_PATHS = [
+        'chromium-browser',
+        'google-chrome',
+        'chromium'
+    ];
+
+    foreach ($CHROME_PATHS as $p) {
+        if (v3d_terminal($p.' --version')['status'] == 0)
+            return $p;
+    }
+
+    return '';
+}
+
+function v3d_get_attachments_tmp_dir($attachments) {
+    if (empty($attachments)) {
+        $temp_dir = get_temp_dir().uniqid('v3d_email_att');
+        mkdir($temp_dir, 0777, true);
+        return $temp_dir.'/';
+    } else {
+        return dirname($attachments[0]).'/';
+    }
+}
+
+function v3d_gen_email_attachments($order, $order_id, $use_pdf) {
+
+    $attachments = array();
+
+    if (!empty($order['screenshot'])) {
+        $scr_file = v3d_get_upload_dir().'screenshots/'.basename($order['screenshot']);
+        if (is_file($scr_file)) {
+            $att_path = v3d_get_attachments_tmp_dir($attachments).'order_screenshot.'.pathinfo($scr_file, PATHINFO_EXTENSION);
+            copy($scr_file, $att_path);
+            $attachments[] = $att_path;
+        }
+    }
+
+    if ($use_pdf && is_file(v3d_get_template('order_email_pdf.php'))) {
+        ob_start();
+        include v3d_get_template('order_email_pdf.php');
+        $pdf_html_text = ob_get_clean();
+    } else {
+        return $attachments;
+    }
+
+    $temp_dir = get_temp_dir();
+    $pdf_html = $temp_dir.wp_unique_filename($temp_dir, uniqid('v3d_email_att').'.html');
+    $pdf = v3d_get_attachments_tmp_dir($attachments).'order_details.pdf';
+
+    $success = file_put_contents($pdf_html, $pdf_html_text);
+    if ($success) {
+
+        $chrome_path = v3d_get_chrome_path();
+
+        if (!empty($chrome_path)) {
+
+            // NOTE: undocumented wkhtmltopdf feature
+            if (basename($chrome_path) == 'wkhtmltopdf')
+                v3d_terminal($chrome_path.' -s Letter --print-media-type '.$pdf_html.' '.$pdf);
+            else
+                v3d_terminal($chrome_path.' --headless --disable-gpu --print-to-pdf='.$pdf.' '.$pdf_html);
+
+            if (is_file($pdf))
+                $attachments[] = $pdf;
+        }
+
+        @unlink($pdf_html);
+    }
+
+    return $attachments;
+
+}
+
+function v3d_cleanup_email_attachments($attachments) {
+
+    if (empty($attachments))
+        return;
+
+    foreach ($attachments as $a) {
+        @unlink($a);
+    }
+
+    rmdir(v3d_get_attachments_tmp_dir($attachments));
 }
 
 function v3d_update_order($order_id, $order) {
@@ -192,7 +335,7 @@ function v3d_display_order($order, $order_id) {
 }
 
 function v3d_delete_order($order_id) {
-    
+
     $scr_url = get_post_meta($order_id, 'screenshot', true);
 
     if (!empty($scr_url)) {
@@ -209,14 +352,14 @@ class V3D_Order_List_Table extends WP_List_Table {
 
     function __construct(){
         global $status, $page;
-                
+
         // Set parent defaults
         parent::__construct( array(
             'singular'  => 'order',
             'plural'    => 'orders',
             'ajax'      => false
         ) );
-        
+
     }
 
     function column_default($item, $column_name){
@@ -233,7 +376,7 @@ class V3D_Order_List_Table extends WP_List_Table {
     }
 
     function column_title($item){
-        
+
         // Build row actions
         $actions = array(
             'edit'      => sprintf('<a href="?page=%s&action=%s&order=%s">Edit</a>',
@@ -241,7 +384,7 @@ class V3D_Order_List_Table extends WP_List_Table {
             'delete'    => sprintf('<a href="?page=%s&action=%s&order=%s">Delete</a>',
                     sanitize_text_field($_REQUEST['page']), 'delete', $item['ID']),
         );
-        
+
         // Return the title contents
         return sprintf('%1$s <span style="color:silver">(id:%2$s)</span>%3$s',
             /*$1%s*/ $item['title'],
@@ -297,21 +440,21 @@ class V3D_Order_List_Table extends WP_List_Table {
 
     function prepare_items() {
         $per_page = 15;
-        
+
         $columns = $this->get_columns();
         $hidden = array();
         $sortable = $this->get_sortable_columns();
-        
+
         $this->_column_headers = array($columns, $hidden, $sortable);
 
         $this->process_bulk_action();
 
         // if no sort, default to title
         $orderby = (!empty($_REQUEST['orderby'])) ?
-                sanitize_text_field($_REQUEST['orderby']) : 'title'; 
+                sanitize_text_field($_REQUEST['orderby']) : 'title';
         // if no order, default to asc
         $order = (!empty($_REQUEST['order'])) ?
-                sanitize_text_field($_REQUEST['order']) : 'ASC'; 
+                sanitize_text_field($_REQUEST['order']) : 'ASC';
 
         $args = array(
             'posts_per_page'   => -1,
@@ -351,15 +494,15 @@ class V3D_Order_List_Table extends WP_List_Table {
                 'date'   => $q_post->post_date,
             );
         }
-        
+
         $current_page = $this->get_pagenum();
-        
+
         $total_items = count($posts);
 
         $posts = array_slice($posts, (($current_page-1)*$per_page), $per_page);
-        
+
         $this->items = $posts;
-        
+
         $this->set_pagination_args( array(
             'total_items' => $total_items,
             'per_page'    => $per_page,
@@ -375,7 +518,7 @@ function v3d_order_shortcode($atts = [], $content = null, $tag = '')
     // normalize attribute keys, lowercase
     $atts = array_change_key_case((array)$atts, CASE_LOWER);
 
-    $action = (!empty($_REQUEST['v3d_action'])) ? sanitize_text_field($_REQUEST['v3d_action']) : ''; 
+    $action = (!empty($_REQUEST['v3d_action'])) ? sanitize_text_field($_REQUEST['v3d_action']) : '';
     $title = (!empty($_REQUEST['v3d_title'])) ? sanitize_text_field($_REQUEST['v3d_title']) : '';
     $content = (!empty($_REQUEST['v3d_content'])) ? sanitize_textarea_field($_REQUEST['v3d_content']) : '';
     $price = (!empty($_REQUEST['v3d_price'])) ? sanitize_text_field($_REQUEST['v3d_price']) : '0';
@@ -395,7 +538,7 @@ function v3d_order_shortcode($atts = [], $content = null, $tag = '')
     $user_comment = (!empty($_REQUEST['v3d_user_comment'])) ? sanitize_textarea_field($_REQUEST['v3d_user_comment']) : '';
 
     if ($action == 'submit') {
-        v3d_create_order(array(
+        $result = v3d_create_order(array(
             'title' => $title,
             'content' => $content,
             'price' => $price,
@@ -406,7 +549,7 @@ function v3d_order_shortcode($atts = [], $content = null, $tag = '')
             'user_comment' => $user_comment,
         ));
         ob_start();
-        include v3d_get_template('order_success.php');
+        include v3d_get_template($result ? 'order_success.php' : 'order_failed.php');
         return ob_get_clean();
     } else {
         ob_start();
@@ -421,7 +564,7 @@ function v3d_save_screenshot($data_url) {
     $data_url = str_replace(' ', '+', $data_url);
 
     $upload_dir = v3d_get_upload_dir();
-    $screenshot_dir = $upload_dir.'screenshots/'; 
+    $screenshot_dir = $upload_dir.'screenshots/';
     if (!is_dir($screenshot_dir)) {
         mkdir($screenshot_dir, 0777, true);
     }
@@ -434,7 +577,7 @@ function v3d_save_screenshot($data_url) {
     else
         return '';
 }
- 
+
 function v3d_order_shortcode_init() {
     add_shortcode('verge3d_order', 'v3d_order_shortcode');
 }
@@ -451,7 +594,7 @@ function v3d_redirect_order_list() {
 
 
 function v3d_api_place_order(WP_REST_Request $request) {
-  
+
     $params = $request->get_json_params();
 
     if (!empty($params)) {
@@ -459,27 +602,39 @@ function v3d_api_place_order(WP_REST_Request $request) {
         if (!empty($params['screenshot']))
             $params['screenshot'] = v3d_save_screenshot($params['screenshot']);
 
-        v3d_create_order($params);
-
-        $response = new WP_REST_Response(
-            array(
-                'order' => 'ok',
-            )
-        );
+        if (v3d_create_order($params)) {
+            $response = new WP_REST_Response(
+                array(
+                    'status' => 'ok',
+                    // COMPAT: < 2.12
+                    'order' => 'ok'
+                )
+            );
+        } else {
+            $response = new WP_REST_Response(array(
+                'status' => 'rejected',
+                'error' => 'Order rejected'
+            ), 400);
+        }
     } else {
-
-        $response = new WP_Error('wrong_order_params', 'Wrong order params', array('status' => 400));
-
+        $response = new WP_REST_Response(array(
+            'status' => 'rejected',
+            'error' => 'Bad request'
+        ), 400);
     }
 
-    $response->header('Access-Control-Allow-Origin', '*');
+    if (get_option('v3d_cross_domain'))
+        $response->header('Access-Control-Allow-Origin', '*');
+
     return $response;
 
 }
 
 add_action('rest_api_init', function () {
-    register_rest_route('verge3d/v1', '/place_order', array(
-        'methods' => 'POST',
-        'callback' => 'v3d_api_place_order',
-    ));
+    if (get_option('v3d_order_api')) {
+        register_rest_route('verge3d/v1', '/place_order', array(
+            'methods' => 'POST',
+            'callback' => 'v3d_api_place_order',
+        ));
+    }
 });

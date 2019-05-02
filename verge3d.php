@@ -3,13 +3,14 @@
 Plugin Name: Verge3D
 Plugin URI: https://www.soft8soft.com/verge3d
 Description: Verge3D is the most artist-friendly toolkit for creating interactive web-based experiences. It can be used to create product configurators, 3D presentations, online stores, e-learning apps, 3D portfolios, browser games and more.
-Version: 2.10.0
+Version: 2.12.0
 Author: Soft8Soft LLC
 Author URI: https://www.soft8soft.com
 License: GPLv2 or later
 */
 
 include plugin_dir_path(__FILE__) . 'app.php';
+include plugin_dir_path(__FILE__) . 'file_storage.php';
 include plugin_dir_path(__FILE__) . 'order.php';
 
 
@@ -181,17 +182,41 @@ function v3d_settings_menu() {
 
 function v3d_settings_init()
 {
+    add_option('v3d_order_email', '');
     register_setting('verge3d', 'v3d_order_email');
+
+    add_option('v3d_order_email_from_name', '');
     register_setting('verge3d', 'v3d_order_email_from_name');
+
+    add_option('v3d_order_email_from_email', '');
     register_setting('verge3d', 'v3d_order_email_from_email');
+
+    add_option('v3d_order_email_subject', 'Order notification');
+    register_setting('verge3d', 'v3d_order_email_subject');
+
+    add_option('v3d_order_email_attach_pdf', 0);
+    register_setting('verge3d', 'v3d_order_email_attach_pdf');
+
+    add_option('v3d_chrome_path', '');
+    register_setting('verge3d', 'v3d_chrome_path');
+
+    add_option('v3d_order_api', 1);
+    register_setting('verge3d', 'v3d_order_api');
+
+    add_option('v3d_file_api', 1);
+    register_setting('verge3d', 'v3d_file_api');
+
+    add_option('v3d_cross_domain', 1);
+    register_setting('verge3d', 'v3d_cross_domain');
+
 
     add_settings_section(
         'v3d_ecommerce_settings',
-        '',//'E-Commerce',
+        'E-Commerce',
         '',//'v3d_ecommerce_settings_cb',
         'verge3d'
     );
- 
+
     add_settings_field(
         'v3d_order_email',
         'Order notification e-mail',
@@ -207,9 +232,53 @@ function v3d_settings_init()
         'verge3d',
         'v3d_ecommerce_settings'
     );
+
+    add_settings_field(
+        'v3d_order_email_subject',
+        'Order e-mail subject',
+        'v3d_order_email_subject_cb',
+        'verge3d',
+        'v3d_ecommerce_settings'
+    );
+
+    add_settings_field(
+        'v3d_order_email_pdf',
+        'Order e-mail PDF attachment',
+        'v3d_order_email_pdf_cb',
+        'verge3d',
+        'v3d_ecommerce_settings'
+    );
+
+
+    add_settings_section(
+        'v3d_security_settings',
+        'Security',
+        '',
+        'verge3d'
+    );
+
+    add_settings_field(
+        'v3d_rest_api',
+        'Enable REST APIs',
+        'v3d_rest_api_cb',
+        'verge3d',
+        'v3d_security_settings'
+    );
+
+    add_settings_field(
+        'v3d_cross_domain',
+        'Cross-domain requests',
+        'v3d_cross_domain_cb',
+        'verge3d',
+        'v3d_security_settings'
+    );
+
+
 }
 add_action('admin_init', 'v3d_settings_init');
- 
+
+/* E-commerce settings UI */
+
 function v3d_ecommerce_settings_cb() {
     echo 'Order notification settings:';
 }
@@ -233,6 +302,73 @@ function v3d_order_email_from_cb() {
     <p class="description">From whom customers will be receiving e-mail confirmations. For example John Smith.</p>
     <input type="email" name="v3d_order_email_from_email" value="<?php echo isset($email) ? esc_attr($email) : ''; ?>">
     <p class="description">From what e-mail customers will be receiving confirmations. For example john.smith@yourcompany.com</p>
+    <?php
+}
+
+function v3d_order_email_subject_cb() {
+    // get the value of the setting we've registered with register_setting()
+    $subject = get_option('v3d_order_email_subject');
+    ?>
+    <input type="text" name="v3d_order_email_subject" value="<?php echo isset($subject) ? esc_attr($subject) : ''; ?>">
+    <p class="description">Subject of confirmation e-mails sent to your customers.</p>
+    <?php
+}
+
+function v3d_order_email_pdf_cb() {
+    // get the value of the setting we've registered with register_setting()
+    $chrome_path = get_option('v3d_chrome_path');
+
+    ?>
+    <fieldset>
+    <label>
+      <input type="checkbox" id="v3d_order_email_attach_pdf" name="v3d_order_email_attach_pdf" value="1" <?php checked(1, get_option('v3d_order_email_attach_pdf')); ?>">
+      Attach
+    <p class="description">Please install Chrome/Chromium browser on the server in order to use this feature.</p>
+    </label>
+    <br>
+    <input type="text" id="v3d_chrome_path" name="v3d_chrome_path" value="<?php echo isset($chrome_path) ? esc_attr($chrome_path) : ''; ?>">
+    <p class="description">Path to the Chrome/Chromium browser to perform PDF conversion. Leave blank if you installed it system-wide.</p>
+    </fieldset>
+
+    <script type="text/javascript">
+        var attachPdfCheckbox = document.getElementById("v3d_order_email_attach_pdf");
+
+        function showHideChromePath() {
+            document.getElementById("v3d_chrome_path").disabled =
+                !attachPdfCheckbox.checked;
+        }
+
+        attachPdfCheckbox.onchange = showHideChromePath;
+        showHideChromePath();
+
+    </script>
+    <?php
+}
+
+/* Security settings UI */
+
+function v3d_rest_api_cb() {
+    ?>
+    <fieldset>
+    <label>
+      <input type="checkbox" name="v3d_order_api" value="1" <?php checked(1, get_option('v3d_order_api')); ?>">
+      Order management
+    </label>
+    <br>
+    <label>
+      <input type="checkbox" name="v3d_file_api" value="1" <?php checked(1, get_option('v3d_file_api')); ?>">
+      File storage
+    </label>
+    </fieldset>
+    <?php
+}
+
+function v3d_cross_domain_cb() {
+    ?>
+    <label>
+      <input type="checkbox" name="v3d_cross_domain" value="1" <?php checked(1, get_option('v3d_cross_domain')); ?>">
+      Allow
+    </label>
     <?php
 }
 
