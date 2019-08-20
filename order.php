@@ -158,35 +158,35 @@ function v3d_create_order($order) {
     return true;
 }
 
-/**
- * Exec external program in a portable way
- * https://www.binarytides.com/execute-shell-commands-php/
- */
 function v3d_terminal($command) {
-    // system
+
+    $output = '';
+
     if (function_exists('system')) {
         ob_start();
-        system($command , $return_var);
+        system($command, $return_var);
         $output = ob_get_contents();
         ob_end_clean();
     }
-    // passthru
-    else if (function_exists('passthru')) {
+
+    if (empty($output) && function_exists('passthru')) {
         ob_start();
-        passthru($command , $return_var);
+        passthru($command, $return_var);
         $output = ob_get_contents();
         ob_end_clean();
     }
-    // exec
-    else if (function_exists('exec')) {
-        exec($command , $output , $return_var);
+
+    if (empty($output) && function_exists('exec')) {
+        exec($command, $output , $return_var);
         $output = implode("n" , $output);
     }
-    // shell_exec
-    else if (function_exists('shell_exec')) {
-        $output = shell_exec($command) ;
+
+    if (empty($output) && function_exists('shell_exec')) {
+        $output = shell_exec($command);
+        $return_var = 0;
     }
-    else {
+
+    if (empty($output)) {
         $output = 'Command execution not possible on this system';
         $return_var = 1;
     }

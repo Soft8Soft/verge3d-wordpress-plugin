@@ -66,7 +66,7 @@ function v3d_app_menu() {
         }
 
         $title = get_the_title($app_id);
-      
+
         $canvas_width = get_post_meta($app_id, 'canvas_width', true);
         $canvas_height = get_post_meta($app_id, 'canvas_height', true);
         $allow_fullscreen = get_post_meta($app_id, 'allow_fullscreen', true);
@@ -74,7 +74,9 @@ function v3d_app_menu() {
         ?>
         <div class="wrap">
           <h1 class="wp-heading-inline">Update Verge3D Application</h1>
-          <form method="post" id="updateappform" enctype="multipart/form-data" onsubmit="handleUploads(); return false;">
+          <h2>Settings</h2>
+
+          <form method="post" enctype="multipart/form-data">
             <input type="hidden" name="page" value="<?php echo sanitize_text_field($_REQUEST['page']) ?>" />
             <input type="hidden" name="action" value="editapp" />
             <input type="hidden" name="app" value="<?php echo $app_id ?>" />
@@ -88,34 +90,6 @@ function v3d_app_menu() {
                     <input name="title" type="text" id="title" value="<?php echo $title ?>" aria-required="true" autocapitalize="none" autocorrect="off" maxlength="200">
                   </td>
                 </tr>
-                <tr class="form-field">
-                  <th scope="row">
-                    <label for="appfiles">Upload app folder</label>
-                  </th>
-                  <td>
-                    <input type="file" name="appfiles[]" id="appfiles" multiple="" directory="" webkitdirectory="" mozdirectory="">
-
-                    <script>
-
-                    function handleUploads() {
-                        var form = document.getElementById("updateappform");
-                        var input = document.getElementById("appfiles");
-
-                        [].slice.call(input.files).forEach(function(file) {
-                            var inputPath = document.createElement("input");
-                            inputPath.type = "hidden";
-                            inputPath.name = "apppaths[]";
-                            inputPath.value = file.webkitRelativePath || file.name;
-                            form.appendChild(inputPath);
-                        });
-
-                        form.submit();
-                    }
-
-                    </script> 
-                  </td>
-                </tr>
-
                 <tr class="form-field">
                   <th scope="row">
                     <label for="canvas_width">iframe width</label>
@@ -144,6 +118,24 @@ function v3d_app_menu() {
             </table>
             <p class="submit"><input type="submit" class="button button-primary"></p>
           </form>
+
+          <h2>Files</h2>
+          <form method="post" enctype="multipart/form-data" onsubmit="v3d_handle_uploads('<?php echo $app_id ?>'); return false;">
+            <table class="form-table">
+              <tbody>
+                <tr class="form-field">
+                  <th scope="row">
+                    <label for="appfiles">Upload folder</label>
+                  </th>
+                  <td>
+                    <input type="file" name="appfiles[]" id="appfiles" multiple="" directory="" webkitdirectory="" mozdirectory="">
+                    <input type="submit" class="button button-primary" value="Upload">
+                    <span id="upload_progress" class="v3d-upload-progress"></span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </form>
         </div>
         <?php
         break;
@@ -168,9 +160,6 @@ function v3d_app_menu() {
                 );
                 wp_update_post($post_arr);
             }
-
-            if (!empty($_FILES['appfiles']) && !empty($_REQUEST['apppaths']))
-                v3d_upload_app($app_id);
 
             v3d_redirect_app_list();
         } else {
@@ -203,7 +192,7 @@ function v3d_app_menu() {
     default:
         $appTable = new V3D_App_List_Table();
         $appTable->prepare_items();
-        
+
         ?>
         <div class="wrap">
           <div id="icon-users" class="icon32"><br/></div>
@@ -213,7 +202,7 @@ function v3d_app_menu() {
           <div class="v3d-hint">
             <p>Use <code>[verge3d id=""]</code> shortcode to embed Verge3D applications in your pages/posts.</p>
           </div>
-          
+
           <form id="apps-filter" method="get">
             <!-- For plugins, we also need to ensure that the form posts back to our current page -->
             <input type="hidden" name="page" value="<?php echo sanitize_text_field($_REQUEST['page']) ?>" />
@@ -247,38 +236,17 @@ class V3D_App_List_Table extends WP_List_Table {
 
     function __construct(){
         global $status, $page;
-                
+
         // Set parent defaults
         parent::__construct( array(
             'singular'  => 'app',
             'plural'    => 'apps',
             'ajax'      => false
         ) );
-        
+
     }
 
-    /** ************************************************************************
-     * Recommended. This method is called when the parent class can't find a method
-     * specifically build for a given column. Generally, it's recommended to include
-     * one method for each column you want to render, keeping your package class
-     * neat and organized. For example, if the class needs to process a column
-     * named 'title', it would first see if a method named $this->column_title() 
-     * exists - if it does, that method will be used. If it doesn't, this one will
-     * be used. Generally, you should try to use custom column methods as much as 
-     * possible. 
-     * 
-     * Since we have defined a column_title() method later on, this method doesn't
-     * need to concern itself with any column with a name of 'title'. Instead, it
-     * needs to handle everything else.
-     * 
-     * For more detailed insight into how columns are handled, take a look at 
-     * WP_List_Table::single_row_columns()
-     * 
-     * @param array $item A singular item (one full row's worth of data)
-     * @param array $column_name The name/slug of the column to be processed
-     * @return string Text or HTML to be placed inside the column <td>
-     **************************************************************************/
-    function column_default($item, $column_name){
+    function column_default($item, $column_name) {
         switch( $column_name){
         case 'shortcode':
         case 'url':
@@ -289,25 +257,8 @@ class V3D_App_List_Table extends WP_List_Table {
         }
     }
 
+    function column_title($item) {
 
-    /** ************************************************************************
-     * Recommended. This is a custom column method and is responsible for what
-     * is rendered in any column with a name/slug of 'title'. Every time the class
-     * needs to render a column, it first looks for a method named 
-     * column_{$column_title} - if it exists, that method is run. If it doesn't
-     * exist, column_default() is called instead.
-     * 
-     * This example also illustrates how to implement rollover actions. Actions
-     * should be an associative array formatted as 'slug'=>'link html' - and you
-     * will need to generate the URLs yourself. You could even ensure the links
-     * 
-     * 
-     * @see WP_List_Table::::single_row_columns()
-     * @param array $item A singular item (one full row's worth of data)
-     * @return string Text to be placed inside the column <td> (movie title only)
-     **************************************************************************/
-    function column_title($item){
-        
         // Build row actions
         $actions = array(
             'edit'      => sprintf('<a href="?page=%s&action=%s&app=%s">Edit</a>',
@@ -315,8 +266,8 @@ class V3D_App_List_Table extends WP_List_Table {
             'delete'    => sprintf('<a href="?page=%s&action=%s&app=%s">Delete</a>',
                     sanitize_text_field($_REQUEST['page']), 'delete', $item['ID']),
         );
-        
-        //Return the title contents
+
+        // Return the title contents
         return sprintf('%1$s <span style="color:silver">(id:%2$s)</span>%3$s',
             /*$1%s*/ $item['title'],
             /*$2%s*/ $item['ID'],
@@ -324,21 +275,11 @@ class V3D_App_List_Table extends WP_List_Table {
         );
     }
 
-
-    /** ************************************************************************
-     * REQUIRED if displaying checkboxes or using bulk actions! The 'cb' column
-     * is given special treatment when columns are processed. It ALWAYS needs to
-     * have it's own method.
-     * 
-     * @see WP_List_Table::::single_row_columns()
-     * @param array $item A singular item (one full row's worth of data)
-     * @return string Text to be placed inside the column <td> (movie title only)
-     **************************************************************************/
     function column_cb($item){
         return sprintf(
             '<input type="checkbox" name="%1$s[]" value="%2$s" />',
-            /*$1%s*/ $this->_args['singular'],  //Let's simply repurpose the table's singular label ("movie")
-            /*$2%s*/ $item['ID']                //The value of the checkbox should be the record's id
+            /*$1%s*/ $this->_args['singular'],  // Let's simply repurpose the table's singular label ("movie")
+            /*$2%s*/ $item['ID']                // The value of the checkbox should be the record's id
         );
     }
 
@@ -362,20 +303,6 @@ class V3D_App_List_Table extends WP_List_Table {
     }
 
 
-    /** ************************************************************************
-     * Optional. If you need to include bulk actions in your list table, this is
-     * the place to define them. Bulk actions are an associative array in the format
-     * 'slug'=>'Visible Title'
-     * 
-     * If this method returns an empty value, no bulk action will be rendered. If
-     * you specify any bulk actions, the bulk actions box will be rendered with
-     * the table automatically on display().
-     * 
-     * Also note that list tables are not automatically wrapped in <form> elements,
-     * so you will need to create those manually in order for bulk actions to function.
-     * 
-     * @return array An associative array containing all the bulk actions: 'slugs'=>'Visible Titles'
-     **************************************************************************/
     function get_bulk_actions() {
         $actions = array(
             'delete'    => 'Delete'
@@ -392,22 +319,22 @@ class V3D_App_List_Table extends WP_List_Table {
 
     function prepare_items() {
         $per_page = 5;
-        
+
         $columns = $this->get_columns();
         $hidden = array();
         $sortable = $this->get_sortable_columns();
-        
+
         $this->_column_headers = array($columns, $hidden, $sortable);
 
 
         $this->process_bulk_action();
-        
+
         // if no sort, default to title
         $orderby = (!empty($_REQUEST['orderby'])) ?
-                sanitize_text_field($_REQUEST['orderby']) : 'title'; 
+                sanitize_text_field($_REQUEST['orderby']) : 'title';
         // if no order, default to asc
         $order = (!empty($_REQUEST['order'])) ?
-                sanitize_text_field($_REQUEST['order']) : 'ASC'; 
+                sanitize_text_field($_REQUEST['order']) : 'ASC';
 
         $args = array(
             'posts_per_page'   => -1,
@@ -444,26 +371,15 @@ class V3D_App_List_Table extends WP_List_Table {
                 'date'   => $q_post->post_date,
             );
         }
-        
-        /**
-         * REQUIRED for pagination. Let's figure out what page the user is currently 
-         * looking at. We'll need this later, so you should always include it in 
-         * your own package classes.
-         */
+
         $current_page = $this->get_pagenum();
-        
-        /**
-         * REQUIRED for pagination. Let's check how many items are in our data array. 
-         * In real-world use, this would be the total number of items in your database, 
-         * without filtering. We'll need this later, so you should always include it 
-         * in your own package classes.
-         */
+
         $total_items = count($posts);
 
         $posts = array_slice($posts, (($current_page-1)*$per_page), $per_page);
-        
+
         $this->items = $posts;
-        
+
         $this->set_pagination_args( array(
             'total_items' => $total_items,
             'per_page'    => $per_page,
@@ -472,14 +388,7 @@ class V3D_App_List_Table extends WP_List_Table {
     }
 }
 
-
-function v3d_shortcode($atts = [], $content = null, $tag = '')
-{
-    $atts = array_change_key_case((array)$atts, CASE_LOWER);
-    $v3d_atts = shortcode_atts(['id' => ''], $atts, $tag);
-
-    $app_id = $v3d_atts['id'];
- 
+function v3d_gen_app_iframe_html($app_id) {
     $url = v3d_get_app_url($app_id);
     if (empty($url))
         return '';
@@ -490,7 +399,7 @@ function v3d_shortcode($atts = [], $content = null, $tag = '')
 
     ob_start();
     ?>
-    <iframe class="v3d-iframe" src="<?php echo esc_url($url) ?>"
+    <iframe id="v3d_iframe" class="v3d-iframe" src="<?php echo esc_url($url) ?>"
         width="<?php echo esc_attr($canvas_width) ?>"
         height="<?php echo esc_attr($canvas_height) ?>"
         <?php echo !empty($allow_fullscreen) ? 'allowfullscreen' : '' ?>>
@@ -498,7 +407,17 @@ function v3d_shortcode($atts = [], $content = null, $tag = '')
     <?php
     return ob_get_clean();
 }
- 
+
+function v3d_shortcode($atts = [], $content = null, $tag = '')
+{
+    $atts = array_change_key_case((array)$atts, CASE_LOWER);
+    $v3d_atts = shortcode_atts(['id' => ''], $atts, $tag);
+
+    $app_id = $v3d_atts['id'];
+
+    return v3d_gen_app_iframe_html($app_id);
+}
+
 function v3d_shortcodes_init() {
     add_shortcode('verge3d', 'v3d_shortcode');
 }
@@ -551,26 +470,30 @@ function v3d_get_app_dir($app_id) {
         return '';
 }
 
-function v3d_upload_app($app_id) {
-        
+add_action('wp_ajax_v3d_upload_app_file', 'v3d_upload_app_file');
+
+function v3d_upload_app_file() {
+
     $count = 0;
-    
+
+    if (!empty($_REQUEST['app'])) {
+        $app_id = $_REQUEST['app'];
+    } else {
+        wp_die();
+    }
+
     $upload_dir = v3d_get_upload_dir();
     $upload_app_dir = $upload_dir.$app_id;
 
-    if (is_dir($upload_app_dir))
-        v3d_rmdir($upload_app_dir);
+    //if (is_dir($upload_app_dir))
+    //    v3d_rmdir($upload_app_dir);
 
-    mkdir($upload_app_dir, 0777, true);
+    if (!is_dir($upload_app_dir))
+        mkdir($upload_app_dir, 0777, true);
 
-    foreach ($_FILES['appfiles']['name'] as $i => $name) {
-        if (strlen($_FILES['appfiles']['name'][$i]) > 1) {
-            $fullpath = strip_tags(sanitize_text_field($_REQUEST['apppaths'][$i]));
-
-            // prevent upload of Blender and Max files
-            $ext = pathinfo($fullpath, PATHINFO_EXTENSION);
-            if ($ext == 'blend' or $ext == 'max')
-                continue;
+    if (!empty($_FILES['appfile'])) {
+        if (strlen($_FILES['appfile']['name']) > 1) {
+            $fullpath = strip_tags(sanitize_text_field($_REQUEST['apppath']));
 
             // strip first directory name
             $fullpath = explode("/", $fullpath);
@@ -583,9 +506,11 @@ function v3d_upload_app($app_id) {
                 mkdir($upload_app_dir.'/'.$path);
             }
 
-            if (move_uploaded_file($_FILES['appfiles']['tmp_name'][$i], $upload_app_dir.'/'.$fullpath)) {
-                $count++;
+            if (move_uploaded_file($_FILES['appfile']['tmp_name'], $upload_app_dir.'/'.$fullpath)) {
+                print_r("ok");
             }
         }
     }
+
+    wp_die();
 }

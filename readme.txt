@@ -1,10 +1,10 @@
 === Verge3D Publishing and E-Commerce ===
 Contributors: soft8soft
-Tags: verge3d,3d,webgl,3dweb,web3d
+Tags: verge3d,3d,webgl,3dweb,ecommerce
 Requires at least: 4.7
-Tested up to: 5.1
+Tested up to: 5.2
 Requires PHP: 5.6
-Stable tag: 2.12.0
+Stable tag: 2.14.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,12 @@ No questions yet. Please ask them on the [Verge3D Forums](https://www.soft8soft.
 3. Managing orders
 
 == Changelog ==
+
+= 2.13 =
+* Improve application upload speed, fix various issues with server limits.
+
+= 2.12 =
+* Add order id field to order forms. Support order filter/verification hook.
 
 = 2.11 =
 * Support for persistent file storage.
