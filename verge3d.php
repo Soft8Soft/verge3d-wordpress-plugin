@@ -3,7 +3,7 @@
 Plugin Name: Verge3D
 Plugin URI: https://www.soft8soft.com/verge3d
 Description: Verge3D is the most artist-friendly toolkit for creating interactive web-based experiences. It can be used to create product configurators, 3D presentations, online stores, e-learning apps, 3D portfolios, browser games and more.
-Version: 2.15.0
+Version: 2.16.1
 Author: Soft8Soft LLC
 Author URI: https://www.soft8soft.com
 License: GPLv2 or later
@@ -12,7 +12,7 @@ License: GPLv2 or later
 include plugin_dir_path(__FILE__) . 'app.php';
 include plugin_dir_path(__FILE__) . 'file_storage.php';
 include plugin_dir_path(__FILE__) . 'order.php';
-//include plugin_dir_path(__FILE__) . 'woo_product.php';
+include plugin_dir_path(__FILE__) . 'woo_product.php';
 
 
 function v3d_add_capability() {
@@ -160,6 +160,8 @@ add_action('admin_menu', 'v3d_add_menus');
 function v3d_settings_menu() {
     if (!current_user_can('manage_options'))
         return;
+
+    add_filter('admin_footer_text', 'v3d_replace_footer');
 
     if (isset($_GET['settings-updated'])) {
         add_settings_error('verge3d_messages', 'verge3d_message', 'Settings Saved', 'updated');
@@ -415,5 +417,9 @@ function v3d_get_template($name) {
         return $v3d_theme_dir.$name;
     else
         return plugin_dir_path(__FILE__).'templates/'.$name;
+}
+
+function v3d_replace_footer() {
+    echo 'Thank you for using Verge3D! Please refer to this <a href="https://www.soft8soft.com/docs/manual/en/introduction/Wordpress-Plugin.html" target="_blank">page</a> to find out how to use this plugin.';
 }
 

@@ -1,7 +1,7 @@
 <?php
 
 define('V3D_DEFAULT_CANVAS_WIDTH', 800);
-define('V3D_DEFAULT_CANVAS_HEIGHT', 600);
+define('V3D_DEFAULT_CANVAS_HEIGHT', 500);
 
 if (!class_exists('WP_List_Table')){
     require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
@@ -14,6 +14,8 @@ function v3d_app_menu() {
         return;
     }
 
+    add_filter('admin_footer_text', 'v3d_replace_footer');
+
     $action = (!empty($_REQUEST['action'])) ? sanitize_text_field($_REQUEST['action']) : '';
 
     switch ($action) {
@@ -21,7 +23,7 @@ function v3d_app_menu() {
         ?>
 
         <div class="wrap">
-          <h1 class="wp-heading-inline">Add a new Verge3D application</h1>
+          <h1 class="wp-heading-inline">New Verge3D application</h1>
           <form method="get" class="validate">
             <input type="hidden" name="page" value="<?php echo sanitize_text_field($_REQUEST['page']) ?>" />
             <input type="hidden" name="action" value="createapp" />
@@ -35,7 +37,7 @@ function v3d_app_menu() {
                 </tr>
               </tbody>
             </table>
-            <p class="submit"><input type="submit" class="button button-primary"></p>
+            <p class="submit"><input type="submit" class="button button-primary" value="Next"></p>
           </form>
         </div>
 
@@ -53,8 +55,8 @@ function v3d_app_menu() {
                 'allow_fullscreen' => 1,
             ),
         );
-        wp_insert_post($post_arr);
-        v3d_redirect_app_list();
+        $app_id = wp_insert_post($post_arr);
+        v3d_redirect_app($app_id);
         break;
     case 'edit':
 
@@ -73,7 +75,7 @@ function v3d_app_menu() {
 
         ?>
         <div class="wrap">
-          <h1 class="wp-heading-inline">Update Verge3D Application</h1>
+          <h1 class="wp-heading-inline">Manage Verge3D Application</h1>
           <h2>Settings</h2>
 
           <form method="post" enctype="multipart/form-data">
@@ -116,7 +118,7 @@ function v3d_app_menu() {
                 </tr>
               </tbody>
             </table>
-            <p class="submit"><input type="submit" class="button button-primary"></p>
+            <p class="submit"><input type="submit" class="button button-primary" value="Save"></p>
           </form>
 
           <h2>Files</h2>
@@ -131,6 +133,7 @@ function v3d_app_menu() {
                     <input type="file" name="appfiles[]" id="appfiles" multiple="" directory="" webkitdirectory="" mozdirectory="">
                     <input type="submit" class="button button-primary" value="Upload">
                     <span id="upload_progress" class="v3d-upload-progress"></span>
+                    <span id="upload_status" class="v3d-upload-status"></span>
                   </td>
                 </tr>
               </tbody>
@@ -161,7 +164,7 @@ function v3d_app_menu() {
                 wp_update_post($post_arr);
             }
 
-            v3d_redirect_app_list();
+            v3d_redirect_app();
         } else {
             echo 'Bad request';
             return;
@@ -182,7 +185,7 @@ function v3d_app_menu() {
                     v3d_delete_app(intval($app));
             }
 
-            v3d_redirect_app_list();
+            v3d_redirect_app();
         } else {
             echo 'Bad request';
             return;
@@ -424,10 +427,17 @@ function v3d_shortcodes_init() {
 add_action('init', 'v3d_shortcodes_init');
 
 
-function v3d_redirect_app_list() {
+function v3d_redirect_app($app_id=-1) {
+
+    $params = '?page=verge3d_app';
+
+    if ($app_id > -1) {
+        $params .= ('&action=edit&app='.$app_id);
+    }
+
     ?>
     <script type="text/javascript">
-          document.location.href="?page=verge3d_app";
+          document.location.href="<?php echo $params ?>";
     </script>
     <?php
 }
@@ -479,7 +489,7 @@ function v3d_upload_app_file() {
     if (!empty($_REQUEST['app'])) {
         $app_id = $_REQUEST['app'];
     } else {
-        wp_die();
+        wp_die('error');
     }
 
     $upload_dir = v3d_get_upload_dir();
@@ -492,7 +502,7 @@ function v3d_upload_app_file() {
         mkdir($upload_app_dir, 0777, true);
 
     if (!empty($_FILES['appfile'])) {
-        if (strlen($_FILES['appfile']['name']) > 1) {
+        if (strlen($_FILES['appfile']['name']) > 1 && $_FILES['appfile']['error'] == UPLOAD_ERR_OK) {
             $fullpath = strip_tags(sanitize_text_field($_REQUEST['apppath']));
 
             // strip first directory name
@@ -502,15 +512,15 @@ function v3d_upload_app_file() {
 
             $path = dirname($fullpath);
 
-            if (!is_dir($upload_app_dir.'/'.$path)){
+            if (!is_dir($upload_app_dir.'/'.$path)) {
                 mkdir($upload_app_dir.'/'.$path);
             }
 
             if (move_uploaded_file($_FILES['appfile']['tmp_name'], $upload_app_dir.'/'.$fullpath)) {
-                print_r("ok");
+                wp_die('ok');
             }
         }
     }
 
-    wp_die();
+    wp_die('error');
 }

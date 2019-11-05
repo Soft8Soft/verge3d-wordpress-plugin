@@ -6,54 +6,12 @@ function v3d_load_woo_scripts() {
 add_action('wp_enqueue_scripts', 'v3d_load_woo_scripts');
 
 
-function v3d_register_product_type() {
-    class WC_Product_Verge3D extends WC_Product {
-        public function __construct($product) {
-            $this->product_type = 'verge3d';
-            parent::__construct($product);
-        }
-
-        public function get_name($context = 'view') {
-            $name = v3d_get_session_param($this->get_id(), 'name',
-                parent::get_name($context));
-            return $name;
-        }
-
-        public function get_price($context = 'view') {
-            $price = v3d_get_session_param($this->get_id(), 'price',
-                get_post_meta($this->get_id(), 'v3d_default_price', true));
-            return $price;
-        }
-
-        public function get_sku($context = 'view') {
-            $sku = v3d_get_session_param($this->get_id(), 'sku',
-                parent::get_sku($context));
-            return $sku;
-        }
-
-        /*
-        public function is_purchasable() {
-            return apply_filters('woocommerce_is_purchasable', $this->exists() && ('publish' === $this->get_status() || current_user_can('edit_post', $this->get_id())) && '' !== $this->get_price(), $this);
-            return apply_filters('woocommerce_is_purchasable', $this->exists() && ('publish' === $this->get_status() || current_user_can('edit_post', $this->get_id())), $this);
-        }
-         */
-    }
-}
-add_action('init', 'v3d_register_product_type');
-
-function v3d_add_product_type($types) {
-    $types['verge3d'] = __('Verge3D product', 'verge3d');
-    return $types;
-}
-add_filter('product_type_selector', 'v3d_add_product_type');
-
-
 function v3d_product_tab($tabs) {
     $tabs['verge3d'] = array(
-        'label'	 => __('Verge3D Product', 'verge3d'),
+        'label'	 => __('Verge3D', 'verge3d'),
         'target' => 'v3d_product_options',
         'class'  => array('show_if_verge3d'),
-        'priority' => 10
+        'priority' => 100
     );
 
     return $tabs;
@@ -65,28 +23,31 @@ function v3d_product_tab_content() {
     ?><div id='v3d_product_options' class='panel woocommerce_options_panel'><?php
     ?><div class='options_group'><?php
 
-    woocommerce_wp_text_input(
-        array(
-            'id' => 'v3d_app_id',
-            'label' => __('Application ID', 'verge3d'),
-            'placeholder' => '',
-            'desc_tip' => 'true',
-            'description' => __('Enter Verge3D application ID.', 'verge3d'),
-            'type' => 'text'
-        )
-    );
+    global $post;
 
-    woocommerce_wp_text_input(
-        array(
-            'id' => 'v3d_default_price',
-            'label' => __('Default Price', 'verge3d'),
-            'placeholder' => '',
-            'desc_tip' => 'true',
-            'description' => __('Enter Verge3D product default price.', 'verge3d'),
-            'type' => 'text',
-            'data_type' => 'price'
-        )
-    );
+    $value = get_post_meta($post->ID, 'v3d_app_id', true);
+    if (empty($value))
+        $value = '';
+
+    $app_posts = get_posts(array(
+        'posts_per_page'   => -1,
+        'post_type'        => 'v3d_app',
+        'post_status'      => 'publish',
+    ));
+
+    $options[''] = __('None (select a value)', 'verge3d');
+
+    foreach ($app_posts as $app_post)
+        $options[$app_post->ID] = $app_post->post_title;
+
+    woocommerce_wp_select(array(
+        'id' => 'v3d_app_id',
+        'label' => __('Application', 'verge3d'),
+        'options' =>  $options,
+        'value' => $value,
+        'desc_tip' => 'true',
+        'description' => __('Verge3D application which will be displayed on the product page.', 'verge3d'),
+    ));
 
     ?></div>
     </div><?php
@@ -97,27 +58,13 @@ add_action('woocommerce_product_data_panels', 'v3d_product_tab_content');
 function v3d_save_product_settings($post_id) {
 
     $app_id = $_POST['v3d_app_id'];
-    if (!empty($app_id)) {
-        update_post_meta($post_id, 'v3d_app_id', esc_attr($app_id));
-    }
+    if (empty($app_id))
+        $app_id = '';
 
-    $price = $_POST['v3d_default_price'];
-    if (!empty($price)) {
-        update_post_meta($post_id, 'v3d_default_price', esc_attr($price));
-    }
+    update_post_meta($post_id, 'v3d_app_id', esc_attr($app_id));
 
 }
 add_action('woocommerce_process_product_meta', 'v3d_save_product_settings');
-
-
-function v3d_product_front() {
-    global $product;
-
-    if ('verge3d' == $product->get_type()) {
-        wc_get_template('single-product/add-to-cart/simple.php');
-    }
-}
-add_action('woocommerce_single_product_summary', 'v3d_product_front', 30);
 
 
 function v3d_product_image($html) {
@@ -129,87 +76,42 @@ function v3d_product_image($html) {
         'post_status'      => 'publish',
     ));
 
-    if ('verge3d' == $product->get_type() && !empty($app_posts)) {
+    if (!empty($app_posts)) {
         $app_id = get_post_meta($product->get_id(), 'v3d_app_id', true);
         if (!empty($app_id) && !empty(get_post($app_id)))
             return v3d_gen_app_iframe_html($app_id);
         else
-            return v3d_gen_app_iframe_html($app_posts[0]->ID);
+            return $html;
     } else
         return $html;
 }
 add_filter('woocommerce_single_product_image_thumbnail_html', 'v3d_product_image');
 
 
-function v3d_product_admin_custom_js() {
-    if ('product' != get_post_type()) :
-        return;
-    endif;
-    ?>
-    <script type='text/javascript'>
-        jQuery(document).ready(function () {
-            //jQuery('.general_options').addClass('show_if_verge3d').show();
-            //jQuery('#general_product_data').addClass('show_if_verge3d').show();
-            //jQuery('.pricing').addClass('show_if_verge3d').show();
+function v3d_parse_request_attributes() {
 
-            // enable Inventory tab
-            jQuery('.inventory_options').addClass('show_if_verge3d').show();
-            jQuery('#inventory_product_data ._manage_stock_field').addClass('show_if_verge3d').show();
-            jQuery('#inventory_product_data ._sold_individually_field').parent().addClass('show_if_verge3d').show();
-            jQuery('#inventory_product_data ._sold_individually_field').addClass('show_if_verge3d').show();
-        });
-    </script>
-    <?php
-}
-add_action('admin_footer', 'v3d_product_admin_custom_js');
+    $attrs = array();
 
-
-function v3d_set_session_param($product_id, $name, $value) {
-
-    $arr_name = 'v3d_'.$name.'s';
-
-    if (empty(WC()->session))
-        WC()->initialize_session();
-
-    if (!empty(WC()->session->get($arr_name)))
-        $params = WC()->session->get($arr_name);
-    else
-        $params = array();
-
-    $params[$product_id] = $value;
-    WC()->session->set($arr_name, $params);
-}
-
-function v3d_get_session_param($product_id, $name, $default_value='') {
-
-    $arr_name = 'v3d_'.$name.'s';
-
-    if (empty(WC()->session))
-        WC()->initialize_session();
-
-    if (!empty(WC()->session->get($arr_name)))
-        $params = WC()->session->get($arr_name);
-    else
-        $params = array();
-
-    if (!empty($params[$product_id]))
-        return $params[$product_id];
-    else
-        return $default_value;
-}
-
-function v3d_unset_session_param($product_id, $name) {
-
-    $arr_name = 'v3d_'.$name.'s';
-
-    if (!empty(WC()->session->get($arr_name))) {
-        $params = WC()->session->get($arr_name);
-        unset($params[$product_id]);
-        WC()->session->set($arr_name, $params);
+    foreach ($_REQUEST as $key => $value) {
+        if (strpos($key, 'attribute_') !== false)
+          $attrs[urldecode(str_replace('attribute_', '', $key))] = $value;
     }
+
+    return $attrs;
 }
 
-function v3d_change_param() {
+function v3d_product_get_attributes($product) {
+    $attrs = array();
+
+    // NOTE: using get_attributes() alone does not work
+    foreach ($product->get_attributes() as $attr_key => $attr_value) {
+        $attrs[urldecode($attr_key)] = $product->get_attribute($attr_key);
+    }
+
+    return $attrs;
+}
+
+function v3d_get_product_info() {
 
     $url = wp_get_referer();
     $post_id = url_to_postid($url);
@@ -219,68 +121,91 @@ function v3d_change_param() {
         'status' => 'error'
     );
 
-    if (!empty($_REQUEST['v3d_name'])) {
-        $name = $_REQUEST['v3d_name'];
-
-        v3d_set_session_param($product->get_id(), 'name', $name);
-        $response['html'] = $name;
+    if (!empty($product)) {
         $response['status'] = 'ok';
-    }
 
-    if (!empty($_REQUEST['v3d_price'])) {
-        $price = $_REQUEST['v3d_price'];
+        $quantity = $_REQUEST['quantity'];
 
-        v3d_set_session_param($product->get_id(), 'price', $price);
-        $response['html'] = wc_price($price) . $product->get_price_suffix();
-        $response['status'] = 'ok';
-    }
+        $response['name'] = $product->get_name();
+        $response['type'] = $product->get_type();
+        $response['quantity'] = intval($quantity);
 
-    if (!empty($_REQUEST['v3d_sku'])) {
-        $sku = $_REQUEST['v3d_sku'];
+        $response['sku'] = $product->get_sku();
+        $response['price'] = floatval($product->get_price());
 
-        v3d_set_session_param($product->get_id(), 'sku', $sku);
-        $response['html'] = $sku;
-        $response['status'] = 'ok';
-    }
+        $response['weight'] = floatval($product->get_weight());
 
-    if (!empty($_REQUEST['v3d_short_description'])) {
-        $desc = $_REQUEST['v3d_short_description'];
+        $response['length'] = floatval($product->get_length());
+        $response['width'] = floatval($product->get_width());
+        $response['height'] = floatval($product->get_height());
 
-        v3d_set_session_param($product->get_id(), 'short_description', $desc);
-        $response['html'] = $desc;
-        $response['status'] = 'ok';
-    }
+        $response['attributes'] = v3d_product_get_attributes($product);
 
-    if (!empty($_REQUEST['v3d_debug'])) {
-        $response['html'] = '"'.$product.'"';
-        $response['status'] = 'ok';
+        if ($product->is_type('variable')) {
+
+            // preserving non-variable attributes
+            foreach (v3d_parse_request_attributes() as $attr_key => $attr_value) {
+                $response['attributes'][$attr_key] = $attr_value;
+            }
+
+            if (!empty($_REQUEST['variation_id'])) {
+                $variation = wc_get_product($_REQUEST['variation_id']);
+
+                $response['name'] = $variation->get_name();
+
+                if (!empty($variation->get_sku()))
+                    $response['sku'] = $variation->get_sku();
+                if (!empty($variation->get_price()))
+                    $response['price'] = floatval($variation->get_price());
+
+                if (!empty($variation->get_weight()))
+                    $response['weight'] = floatval($variation->get_weight());
+
+                if (!empty($variation->get_length()))
+                    $response['length'] = floatval($variation->get_length());
+                if (!empty($variation->get_width()))
+                    $response['width'] = floatval($variation->get_width());
+                if (!empty($variation->get_height()))
+                    $response['height'] = floatval($variation->get_height());
+             }
+
+        } else if ($product->is_type('grouped')) {
+
+            unset($response['price']);
+            unset($response['quantity']);
+            unset($response['weight']);
+            unset($response['length']);
+            unset($response['width']);
+            unset($response['height']);
+
+            $response['children'] = array();
+
+            foreach ($product->get_children() as $child_id) {
+                $child = wc_get_product($child_id);
+                $child_response = array();
+
+                $child_response['name'] = $child->get_name();
+                $child_response['quantity'] = intval($quantity[$child_id]);
+
+                $child_response['sku'] = $child->get_sku();
+                $child_response['price'] = floatval($child->get_price());
+
+                $child_response['weight'] = floatval($child->get_weight());
+
+                $child_response['length'] = floatval($child->get_length());
+                $child_response['width'] = floatval($child->get_width());
+                $child_response['height'] = floatval($child->get_height());
+
+                $child_response['attributes'] = v3d_product_get_attributes($child);
+
+                array_push($response['children'], $child_response);
+            }
+
+        }
+
     }
 
     wp_send_json($response);
 }
-add_action('wp_ajax_v3d_woocommerce_change_param', 'v3d_change_param');
-add_action('wp_ajax_nopriv_v3d_woocommerce_change_param', 'v3d_change_param');
-
-
-function v3d_get_attribute() {
-
-    $url = wp_get_referer();
-    $post_id = url_to_postid($url);
-    $product = wc_get_product($post_id);
-
-    $response = array(
-        'status' => 'error'
-    );
-
-    if (!empty($_REQUEST['v3d_attribute'])) {
-        $name = $_REQUEST['v3d_attribute'];
-
-        $response['name'] = $name;
-        $response['value'] = $product->get_attribute($name);
-        $response['status'] = 'ok';
-    }
-
-    wp_send_json($response);
-}
-add_action('wp_ajax_v3d_woocommerce_get_attribute', 'v3d_get_attribute');
-add_action('wp_ajax_nopriv_v3d_woocommerce_get_attribute', 'v3d_get_attribute');
+add_action('wp_ajax_v3d_woo_get_product_info', 'v3d_get_product_info');
+add_action('wp_ajax_nopriv_v3d_woo_get_product_info', 'v3d_get_product_info');

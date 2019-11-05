@@ -14,3 +14,11 @@
 .v3d-upload-progress {
     margin: 20px;
 }
+
+.v3d-red {
+    color: red;
+}
+
+.v3d-green {
+    color: green;
+}

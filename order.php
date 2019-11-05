@@ -11,6 +11,8 @@ function v3d_order_menu()
         return;
     }
 
+    add_filter('admin_footer_text', 'v3d_replace_footer');
+
     $action = (!empty($_REQUEST['action'])) ? sanitize_text_field($_REQUEST['action']) : '';
 
     switch ($action) {
