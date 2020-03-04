@@ -15,8 +15,13 @@ function v3d_woo_form_get_quantity(formData) {
     }
 }
 
+function v3d_woo_form_get_product_id(formData) {
+    var varIdElem = document.body.querySelector('input[name=product_id]');
+    formData.append('product_id', varIdElem ? varIdElem.value : -1);
+}
+
 function v3d_woo_form_get_variation_id(formData) {
-    var varIdElem = document.body.querySelector('input.variation_id');
+    var varIdElem = document.body.querySelector('input[name=variation_id]');
     formData.append('variation_id', varIdElem ? varIdElem.value : -1);
 }
 
@@ -39,6 +44,7 @@ function v3d_woo_request_product_info() {
     var formData = new FormData();
     formData.append('action', 'v3d_woo_get_product_info');
     v3d_woo_form_get_quantity(formData);
+    v3d_woo_form_get_product_id(formData);
     v3d_woo_form_get_variation_id(formData);
     v3d_woo_form_get_attributes(formData);
 

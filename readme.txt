@@ -4,7 +4,7 @@ Tags: verge3d,3d,webgl,3dweb,ecommerce
 Requires at least: 4.7
 Tested up to: 5.2
 Requires PHP: 5.6
-Stable tag: 2.16.1
+Stable tag: 3.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -67,6 +67,15 @@ No questions yet. Please ask them on the [Verge3D Forums](https://www.soft8soft.
 6. Easy-to-use application and orders management.
 
 == Changelog ==
+
+= 3.0 =
+* Verge3D 3.0 version bump.
+
+= 2.17.2 =
+* Fix issue with product permalinks.
+
+= 2.17 =
+* Verge3D 2.17 version bump.
 
 = 2.16.1 =
 * Support international attribute names in WooCommerce.

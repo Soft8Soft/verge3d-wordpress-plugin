@@ -113,13 +113,9 @@ function v3d_product_get_attributes($product) {
 
 function v3d_get_product_info() {
 
-    $url = wp_get_referer();
-    $post_id = url_to_postid($url);
-    $product = wc_get_product($post_id);
+    $product = wc_get_product($_REQUEST['product_id']);
 
-    $response = array(
-        'status' => 'error'
-    );
+    $response = array();
 
     if (!empty($product)) {
         $response['status'] = 'ok';
@@ -203,6 +199,9 @@ function v3d_get_product_info() {
 
         }
 
+    } else {
+        $response['status'] = 'error';
+        $response['error'] = 'Product not found';
     }
 
     wp_send_json($response);
