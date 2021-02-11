@@ -1,3 +1,12 @@
+
+var V3D_IGNORE_EXT = [
+    'blend',
+    'blend1',
+    'max',
+    'ma',
+    'mb'
+]
+
 function v3d_handle_uploads(app_id) {
     var input = document.getElementById("appfiles");
     var progressElem = document.getElementById("upload_progress");
@@ -30,8 +39,8 @@ function v3d_handle_uploads(app_id) {
         var path = file.webkitRelativePath || file.name;
         var ext = path.split('.').pop();
 
-        // prevent upload of Blender and Max files
-        if (ext == 'blend' || ext == 'blend1' || ext == 'max') {
+        // prevent upload of some files
+        if (ext in V3D_IGNORE_EXT || path.indexOf('v3d_app_data') > -1) {
             updateProgress();
             continue;
         }

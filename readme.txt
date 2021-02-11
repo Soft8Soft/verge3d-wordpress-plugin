@@ -4,7 +4,7 @@ Tags: verge3d,3d,webgl,3dweb,ecommerce
 Requires at least: 4.7
 Tested up to: 5.2
 Requires PHP: 5.6
-Stable tag: 3.0.0
+Stable tag: 3.6.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Verge3D is the most artist-friendly toolkit for creating interactive WebGL-based
 
 Verge3D can be used to create product configurators, 3D presentations, online stores, e-learning apps, 3D portfolios, browser games and more.
 
-You can try this plugin live using this [sandbox website](https://sandbox.soft8soft.com/).
+You can try this plugin live using this [sandbox website](https://sandbox.soft8soft.com/) or follow the quick-start guide [here](https://www.soft8soft.com/making-3d-product-configurator-for-woocommerce/).
 
 = Take 3D web for a spin =
 
@@ -67,6 +67,24 @@ No questions yet. Please ask them on the [Verge3D Forums](https://www.soft8soft.
 6. Easy-to-use application and orders management.
 
 == Changelog ==
+
+= 3.6 =
+* Fixed error with missing wc_add_to_cart_params structure
+
+= 3.5 =
+* Verge3D 3.5 version bump.
+
+= 3.4 =
+* Verge3D 3.4 version bump.
+
+= 3.3 =
+* Support WooCommerce global attributes. Fix issue with incorrectly uploaded Maya assets.
+
+= 3.2 =
+* Verge3D 3.2 version bump.
+
+= 3.1 =
+* Verge3D 3.1 version bump.
 
 = 3.0 =
 * Verge3D 3.0 version bump.

@@ -2,6 +2,7 @@
 
 function v3d_load_woo_scripts() {
     wp_enqueue_script('v3d_admin', plugin_dir_url( __FILE__ ) . 'js/woo_product.js');
+    wp_add_inline_script('v3d_admin', 'var v3d_woo_ajax_url="'.admin_url('admin-ajax.php').'"', 'before');
 }
 add_action('wp_enqueue_scripts', 'v3d_load_woo_scripts');
 
@@ -94,7 +95,7 @@ function v3d_parse_request_attributes() {
 
     foreach ($_REQUEST as $key => $value) {
         if (strpos($key, 'attribute_') !== false)
-          $attrs[urldecode(str_replace('attribute_', '', $key))] = $value;
+          $attrs[preg_replace('/^pa_/', '', urldecode(str_replace('attribute_', '', $key)))] = $value;
     }
 
     return $attrs;
@@ -105,7 +106,8 @@ function v3d_product_get_attributes($product) {
 
     // NOTE: using get_attributes() alone does not work
     foreach ($product->get_attributes() as $attr_key => $attr_value) {
-        $attrs[urldecode($attr_key)] = $product->get_attribute($attr_key);
+        // remove global attributes prefix if any
+        $attrs[preg_replace('/^pa_/', '', urldecode($attr_key))] = $product->get_attribute($attr_key);
     }
 
     return $attrs;

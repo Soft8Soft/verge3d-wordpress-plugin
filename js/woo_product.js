@@ -49,7 +49,8 @@ function v3d_woo_request_product_info() {
     v3d_woo_form_get_attributes(formData);
 
     var req = new XMLHttpRequest();
-    req.open('POST', wc_add_to_cart_params.ajax_url);
+    // registered in php via v3d_load_woo_scripts
+    req.open('POST', v3d_woo_ajax_url);
     req.send(formData);
     req.addEventListener('load', function() {
         var response = JSON.parse(req.response);
