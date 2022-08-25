@@ -1,3 +1,3 @@
 <div class="v3d-order-form">
-  Wrong order parameters. Please come back and try again.
+  <?= esc_html(get_option('v3d_order_failed_text')); ?>
 </div>

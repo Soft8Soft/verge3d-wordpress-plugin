@@ -1,10 +1,10 @@
 === Verge3D Publishing and E-Commerce ===
 Contributors: soft8soft
 Tags: verge3d,3d,webgl,3dweb,ecommerce
-Requires at least: 4.7
-Tested up to: 5.2
-Requires PHP: 5.6
-Stable tag: 3.6.0
+Requires at least: 5.0
+Tested up to: 6.0.1
+Requires PHP: 7.0
+Stable tag: 4.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -67,6 +67,26 @@ No questions yet. Please ask them on the [Verge3D Forums](https://www.soft8soft.
 6. Easy-to-use application and orders management.
 
 == Changelog ==
+
+= 4.1 =
+* Support itemized orders with server-side price calculation.
+* Quotes and invoices generator.
+* Downloadable products.
+* PayPal payments.
+* Billing and shipping info.
+* Improved plugin security.
+
+= 4.0 =
+* Fix issue with WooCommerce product ID.
+
+= 3.9 =
+* Fix issue with debug notices.
+
+= 3.8 =
+* Verge3D 3.8 version bump.
+
+= 3.7 =
+* Verge3D 3.7 version bump.
 
 = 3.6 =
 * Fixed error with missing wc_add_to_cart_params structure

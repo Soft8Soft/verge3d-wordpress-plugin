@@ -353,8 +353,8 @@ class V3D_App_List_Table extends WP_List_Table {
             'post_type'        => 'v3d_app',
             'post_mime_type'   => '',
             'post_parent'      => '',
-            'author'	   => '',
-            'author_name'	   => '',
+            'author'           => '',
+            'author_name'      => '',
             'post_status'      => 'publish',
             'suppress_filters' => true,
             'fields'           => '',
@@ -366,12 +366,13 @@ class V3D_App_List_Table extends WP_List_Table {
 
         foreach ($q_posts as $q_post) {
             $url = v3d_get_app_url($q_post->ID);
+            $id = $q_post->ID;
             $posts[] = array(
-                'ID'     => $q_post->ID,
+                'ID'     => $id,
                 'title'  => $q_post->post_title,
                 'shortcode'  => '[verge3d id="' . $q_post->ID . '"]',
                 'url' => sprintf('<a href="%s">%s</a>', $url, basename($url)),
-                'date'   => $q_post->post_date,
+                'date' => get_the_time(get_option('date_format').' '.get_option('time_format'), $id),
             );
         }
 

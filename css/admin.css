@@ -6,9 +6,18 @@
     margin-top: 10px;
 } 
 
-.v3d-admin-screenshot {
-    min-width: 200px;
-    max-width: 95%;
+.v3d-admin-attachments {
+    max-width: 100px;
+    max-height: 50px;
+}
+
+td.v3d-admin-order-items-row {
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+
+div.v3d-admin-order-items {
+    width: 95%;
 }
 
 .v3d-upload-progress {
@@ -21,4 +30,110 @@
 
 .v3d-green {
     color: green;
+}
+
+.dialog-bg {
+    display: none;
+    position: fixed;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.dialog {
+    background-color: #f2f2f2;
+    font-size: 14px;
+    padding: 5px;
+    max-width: 800px;
+    max-height: 600px;
+    overflow: hidden;
+    filter: drop-shadow(0px 0px 6px #00000034);
+}
+
+.dialog-quote-sent {
+    padding: 15px;
+}
+
+.dialog-quote-sent button.button {
+    display: block;
+    margin: 0px auto;
+    padding: 0px 25px;
+}
+
+.dialog-heading {
+    line-height: 1.3;
+    text-align: center;
+    padding: 10px;
+    font-weight: 600;
+}
+
+.dialog-item {
+    line-height: 1.3;
+    text-align: left;
+}
+
+.dialog-item th {
+    padding: 10px;
+    font-weight: 600;
+}
+
+.dialog-buttons {
+    margin: 0px auto;
+    padding: 10px;
+}
+
+.v3d-wide-input {
+    min-width: 300px;
+}
+
+.v3d-half-width {
+    width: 49%;
+}
+
+.v3d-full-width {
+    width: 100%;
+}
+
+table.v3d-side-panel-table th {
+    padding: 5px;
+}
+
+table.v3d-side-panel-table td {
+    padding: 5px;
+}
+
+a.v3d-side-panel-button {
+    text-align: center;
+}
+
+fieldset.v3d-one-line-checkers label {
+    padding-right: 20px;
+}
+
+textarea.v3d-wide-textarea {
+    min-width: 50%;
+    height: 75px;
+    vertical-align: top;
+}
+
+p.error {
+    color: red;
+}
+
+table.order_items th {
+    padding: 10px; 
+}
+
+table.order_items td {
+    padding: 10px 8px;
+}
+
+table.order_items td.check-column {
+    padding: 0px;
 }

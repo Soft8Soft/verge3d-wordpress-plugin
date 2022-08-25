@@ -1,3 +1,123 @@
 .v3d-iframe {
     border-width: 0px;
 }
+
+.v3d-order-form input {
+    width: 100%;
+}
+
+.v3d-order-form img {
+    max-width: 100px;
+    max-height: 50px;
+}
+
+.v3d-order-email img,
+.v3d-order-pdf img {
+    display: block;
+}
+
+.v3d-order-email th, .v3d-order-email td {
+    padding: 2px;
+}
+
+.v3d-order-email th {
+    width: 30mm;
+    text-align: left;
+}
+
+.v3d-asterix {
+    color: red;
+}
+
+.v3d-order-email textarea {
+    min-width: 200px;
+    min-height: 100px;
+    resize: none;
+}
+
+.v3d-order-email .form-field input {
+    width: 100%;
+}
+
+.v3d-order-email .button {
+    display: block;
+    margin: auto;
+}
+
+.v3d-user-info-table {
+    display: inline-block;
+    vertical-align: top;
+}
+
+.v3d-order-pdf .v3d-user-info-table:nth-of-type(2) {
+    margin-left: 20mm;
+}
+
+.v3d-order-pdf .v3d-additonal-info {
+    margin: 2mm 0;
+}
+
+.v3d-user-info-table th {
+    text-align: left;
+}
+
+.v3d-order-email .v3d-user-info-table td {
+    padding: 5px;
+}
+
+table.v3d-order-items-table, .v3d-order-items-table th, .v3d-order-items-table td,
+table.v3d-order-downloads-table, .v3d-order-downloads-table th, .v3d-order-downloads-table td {
+    border: 1px solid;
+    border-collapse: collapse;
+    padding: 10px;
+}
+
+.v3d-order-downloads-table th, .v3d-order-downloads-table td {
+    min-width: 300px;
+}
+
+tr.v3d-bold-border-total {
+    border-top-width: 2px;
+    border-top-style: solid;
+}
+
+.item-title {
+    min-width: 300px;
+}
+
+.v3d-order-email .has-text-align-left,
+.v3d-order-pdf .has-text-align-left {
+    text-align: left;
+}
+
+.v3d-order-email .has-text-align-center,
+.v3d-order-pdf .has-text-align-center {
+    text-align: center;
+}
+
+.v3d-order-email .has-text-align-right,
+.v3d-order-pdf .has-text-align-right {
+    text-align: right;
+}
+
+.v3d-order-pdf {
+    max-width: 215mm;
+}
+
+.v3d-order-pdf h1 {
+    display: inline-block;
+}
+
+.v3d-order-pdf h1:nth-of-type(1) {
+    margin-left: 30mm;
+}
+
+.v3d-order-pdf h1:nth-of-type(2) {
+    float: right;
+    margin-right: 30mm;
+    font-weight: lighter;
+}
+
+.v3d-order-pdf table.v3d-order-items-table {
+    width: 100%
+}

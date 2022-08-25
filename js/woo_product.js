@@ -16,7 +16,9 @@ function v3d_woo_form_get_quantity(formData) {
 }
 
 function v3d_woo_form_get_product_id(formData) {
-    var varIdElem = document.body.querySelector('input[name=product_id]');
+    var varIdElem = document.body.querySelector('input[name=add-to-cart]') || document.body.querySelector('button[name=add-to-cart]');
+    if (!varIdElem)
+        console.error('Verge3D: Product ID not found!');
     formData.append('product_id', varIdElem ? varIdElem.value : -1);
 }
 

@@ -3,7 +3,7 @@
 const FILES_SUBDIR = 'files/';
 
 function v3d_api_upload_file(WP_REST_Request $request) {
-  
+
     if (!empty($request->get_body())) {
 
         $upload_dir = v3d_get_upload_dir().FILES_SUBDIR;
@@ -39,7 +39,7 @@ function v3d_api_upload_file(WP_REST_Request $request) {
 function v3d_api_get_file(WP_REST_Request $request) {
 
     $id = intval($request->get_param('id'));
-  
+
     if (!empty($id)) {
 
         $upload_dir = v3d_get_upload_dir().FILES_SUBDIR;
@@ -70,10 +70,11 @@ function v3d_api_get_file(WP_REST_Request $request) {
 
 add_action('rest_api_init', function () {
     if (get_option('v3d_file_api')) {
-        
+
         register_rest_route('verge3d/v1', '/upload_file', array(
             'methods' => 'POST',
             'callback' => 'v3d_api_upload_file',
+            'permission_callback' => '__return_true',
         ));
 
         register_rest_route('verge3d/v1', '/get_file/(?P<id>\d+)', array(
@@ -86,6 +87,7 @@ add_action('rest_api_init', function () {
                     }
                 ),
             ),
+            'permission_callback' => '__return_true',
         ));
     }
 
