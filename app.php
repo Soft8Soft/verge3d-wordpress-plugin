@@ -72,6 +72,15 @@ function v3d_app_menu() {
         $canvas_width = get_post_meta($app_id, 'canvas_width', true);
         $canvas_height = get_post_meta($app_id, 'canvas_height', true);
         $allow_fullscreen = get_post_meta($app_id, 'allow_fullscreen', true);
+        $cover_att_id = get_post_meta($app_id, 'cover_attachment_id', true);
+
+        $cover_src = wp_get_attachment_image_src($cover_att_id, 'full');
+        $has_cover = is_array($cover_src);
+
+        $upload_stats = v3d_get_upload_stats($app_id);
+
+        wp_enqueue_media();
+        wp_enqueue_script('v3d_media_script', plugin_dir_url( __FILE__ ) . 'js/media.js');
 
         ?>
         <div class="wrap">
@@ -113,7 +122,22 @@ function v3d_app_menu() {
                     <label for="allow_fullscreen">Allow fullscreen mode</label>
                   </th>
                   <td>
-                    <input type="checkbox" id="allow_fullscreen" name="allow_fullscreen" <?php checked($allow_fullscreen, 1) ?>>
+                    <input type="checkbox" id="allow_fullscreen" name="allow_fullscreen" value="1" <?php checked($allow_fullscreen, 1) ?>>
+                  </td>
+                </tr>
+                <tr class="form-field">
+                  <th scope="row">
+                    <label for="app_image">App Image</label>
+                  </th>
+                  <td>
+                    <div id='image_preview_wrapper'>
+                      <?php if ($has_cover): ?>
+                        <img id='image_preview_image' src='<?= $cover_src[0]; ?>' style='max-width: 200px;'>
+                      <?php endif; ?>
+                    </div>
+                    <input id="upload_image_button" type="button" class="button <?= $has_cover ? 'hidden' : ''; ?>" value="Select image" />
+                    <input id="clear_image_button" type="button" class="button <?= $has_cover ? '' : 'hidden'; ?>" value="Clear image" />
+                    <input type='hidden' name='cover_attachment_id' id='image_attachment_id' value='<?= esc_attr($cover_att_id); ?>'>
                   </td>
                 </tr>
               </tbody>
@@ -127,7 +151,19 @@ function v3d_app_menu() {
               <tbody>
                 <tr class="form-field">
                   <th scope="row">
-                    <label for="appfiles">Upload folder</label>
+                    <label for="appfiles">Status</label>
+                  </th>
+                  <td>
+                    <?php if ($upload_stats): ?>
+                      Stored <?= $upload_stats[0]; ?> files with total size <?= v3d_format_size($upload_stats[1]); ?>.
+                    <?php else: ?>
+                      No files uploaded yet.
+                    <?php endif; ?>
+                  </td>
+                </tr>
+                <tr class="form-field">
+                  <th scope="row">
+                    <label for="appfiles">Upload app folder</label>
                   </th>
                   <td>
                     <input type="file" name="appfiles[]" id="appfiles" multiple="" directory="" webkitdirectory="" mozdirectory="">
@@ -143,15 +179,16 @@ function v3d_app_menu() {
         <?php
         break;
     case 'editapp':
-        if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty(intval($_REQUEST['app']))) {
-            $app_id = intval($_REQUEST['app']);
+        if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty(intval($_POST['app']))) {
+            $app_id = intval($_POST['app']);
 
-            $title = (!empty($_REQUEST['title'])) ? sanitize_text_field($_REQUEST['title']) : '';
-            $canvas_width = (!empty($_REQUEST['canvas_width'])) ? intval($_REQUEST['canvas_width']) : '';
-            $canvas_height = (!empty($_REQUEST['canvas_height'])) ? intval($_REQUEST['canvas_height']) : '';
-            $allow_fullscreen = (!empty(sanitize_text_field($_REQUEST['allow_fullscreen']))) ? 1 : 0;
+            $title = (!empty($_POST['title'])) ? sanitize_text_field($_POST['title']) : '';
+            $canvas_width = (!empty($_POST['canvas_width'])) ? intval($_POST['canvas_width']) : '';
+            $canvas_height = (!empty($_POST['canvas_height'])) ? intval($_POST['canvas_height']) : '';
+            $allow_fullscreen = !empty($_POST['allow_fullscreen']) ? 1 : 0;
+            $cover_att_id = !empty($_POST['cover_attachment_id']) ? absint($_POST['cover_attachment_id']) : 0;
 
-            if (!empty(sanitize_text_field($_REQUEST['title']))) {
+            if (!empty(sanitize_text_field($_POST['title']))) {
                 $post_arr = array(
                     'ID'           => $app_id,
                     'post_title'   => $title,
@@ -159,12 +196,13 @@ function v3d_app_menu() {
                         'canvas_width' => $canvas_width,
                         'canvas_height' => $canvas_height,
                         'allow_fullscreen' => $allow_fullscreen,
+                        'cover_attachment_id' => $cover_att_id,
                     ),
                 );
                 wp_update_post($post_arr);
             }
 
-            v3d_redirect_app();
+            v3d_redirect_app($app_id);
         } else {
             echo 'Bad request';
             return;
@@ -223,6 +261,47 @@ function v3d_app_menu() {
         break;
     }
 }
+
+function v3d_foldersize($path) {
+    $num_files = 0;
+    $total_size = 0;
+
+    $files = scandir($path);
+
+    foreach ($files as $t) {
+        if (is_dir(rtrim($path, '/') . '/' . $t)) {
+            if ($t <> '.' && $t <> '..') {
+                list($num, $size) = v3d_foldersize(rtrim($path, '/') . '/' . $t);
+                $num_files += $num;
+                $total_size += $size;
+            }
+        } else {
+            $num_files +=1;
+            $total_size += filesize(rtrim($path, '/') . '/' . $t);
+        }
+    }
+    return [$num_files, $total_size];
+}
+
+function v3d_get_upload_stats($app_id) {
+    $upload_dir = v3d_get_upload_dir();
+    $upload_app_dir = $upload_dir.$app_id;
+
+    if (is_dir($upload_app_dir)) {
+        return v3d_foldersize($upload_app_dir);
+    } else
+        return null;
+}
+
+function v3d_format_size($size) {
+    $mod = 1024;
+    $units = explode(' ', 'B KB MB GB TB PB');
+    for ($i = 0; $size > $mod; $i++) {
+        $size /= $mod;
+    }
+    return round($size, 2) . ' ' . $units[$i];
+}
+
 
 function v3d_delete_app($app_id) {
     wp_delete_post($app_id);
@@ -392,7 +471,7 @@ class V3D_App_List_Table extends WP_List_Table {
     }
 }
 
-function v3d_gen_app_iframe_html($app_id) {
+function v3d_gen_app_iframe_html($app_id, $wrap_to_figure=false) {
     $url = v3d_get_app_url($app_id);
     if (empty($url))
         return '';
@@ -403,11 +482,13 @@ function v3d_gen_app_iframe_html($app_id) {
 
     ob_start();
     ?>
-    <iframe id="v3d_iframe" class="v3d-iframe" src="<?php echo esc_url($url) ?>"
+    <?= $wrap_to_figure ? '<figure>' : ''; ?>
+      <iframe id="v3d_iframe" class="v3d-iframe" src="<?php echo esc_url($url) ?>"
         width="<?php echo esc_attr($canvas_width) ?>"
         height="<?php echo esc_attr($canvas_height) ?>"
-        <?php echo !empty($allow_fullscreen) ? 'allowfullscreen' : '' ?>>
-    </iframe>
+        <?= !empty($allow_fullscreen) ? 'allow="fullscreen"' : 'allow="fullscreen \'none\'"' ?>>
+      </iframe>
+    <?= $wrap_to_figure ? '</figure>' : ''; ?>
     <?php
     return ob_get_clean();
 }
@@ -419,7 +500,7 @@ function v3d_shortcode($atts = [], $content = null, $tag = '')
 
     $app_id = $v3d_atts['id'];
 
-    return v3d_gen_app_iframe_html($app_id);
+    return v3d_gen_app_iframe_html($app_id, true);
 }
 
 function v3d_shortcodes_init() {

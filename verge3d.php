@@ -3,7 +3,7 @@
 Plugin Name: Verge3D
 Plugin URI: https://www.soft8soft.com/verge3d
 Description: Verge3D is the most artist-friendly toolkit for creating interactive web-based experiences. It can be used to create product configurators, 3D presentations, online stores, e-learning apps, 3D portfolios, browser games and more.
-Version: 4.1.0
+Version: 4.2.0
 Author: Soft8Soft LLC
 Author URI: https://www.soft8soft.com
 License: GPLv2 or later
@@ -937,22 +937,18 @@ function v3d_merchant_phone_cb() {
 
 function v3d_merchant_logo_cb() {
     $image_id = get_option('v3d_merchant_logo');
+    $image_src = wp_get_attachment_image_src($image_id, 'full');
+    $has_image = is_array($image_src);
 
-    if (intval($image_id) > 0) {
-        $image = wp_get_attachment_image($image_id, 'medium', false, array('id' => 'v3d_preview_image'));
-    } else {
-        $image = '<img id="v3d_preview_image" src="" />';
-    }
-
-    echo $image;
     ?>
-
-    <input type="hidden" name="v3d_merchant_logo" id="v3d_merchant_logo" value="<?php echo esc_attr($image_id ); ?>" class="regular-text" />
-
-    <div id="v3d_merchant_logo_buttons" style="<?= intval($image_id) > 0 ? 'display: block' : 'display: inline'; ?>">
-      <input type='button' class="button-primary" value="<?php esc_attr_e('Select image', 'v3d'); ?>" id="v3d_merchant_logo_select"/ >
-      <input type='button' class="button-primary" value="<?php esc_attr_e('Clear image', 'v3d'); ?>" id="v3d_merchant_logo_clear"/>
+    <div id='image_preview_wrapper'>
+      <?php if ($has_image): ?>
+        <img id='image_preview_image' src='<?= $image_src[0]; ?>' style='max-width: 200px;'>
+      <?php endif; ?>
     </div>
+    <input id="upload_image_button" type="button" class="button <?= $has_image ? 'hidden' : ''; ?>" value="Select image" />
+    <input id="clear_image_button" type="button" class="button <?= $has_image ? '' : 'hidden'; ?>" value="Clear image" />
+    <input type='hidden' name='v3d_merchant_logo' id='image_attachment_id' value='<?= esc_attr($image_id); ?>'>
     <?php
 }
 
@@ -1347,13 +1343,13 @@ function v3d_init_custom_scripts_admin($page) {
 add_action('admin_enqueue_scripts', 'v3d_init_custom_scripts_admin');
 
 function load_wp_media_files( $page ) {
-  // change to the $page where you want to enqueue the script
-  if( $page == 'verge3d_page_verge3d_settings' ) {
-    // Enqueue WordPress media scripts
-    wp_enqueue_media();
-    // Enqueue custom script that will interact with wp.media
-    wp_enqueue_script( 'myprefix_script', plugin_dir_url( __FILE__ ) . 'js/media.js');
-  }
+    // change to the $page where you want to enqueue the script
+    if( $page == 'verge3d_page_verge3d_settings' ) {
+        // Enqueue WordPress media scripts
+        wp_enqueue_media();
+        // Enqueue custom script that will interact with wp.media
+        wp_enqueue_script('v3d_media_script', plugin_dir_url( __FILE__ ) . 'js/media.js');
+    }
 }
 add_action('admin_enqueue_scripts', 'load_wp_media_files');
 
@@ -1408,17 +1404,3 @@ function v3d_redirect_same() {
     exit;
 }
 
-
-// ajax action to refresh the user image
-function v3d_get_merchant_logo() {
-    if (isset($_GET['id']) ){
-        $image = wp_get_attachment_image(filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT), 'medium', false, array('id' => 'v3d_preview_image'));
-        $data = array(
-            'image' => $image,
-        );
-        wp_send_json_success($data);
-    } else {
-        wp_send_json_error();
-    }
-}
-add_action('wp_ajax_v3d_get_merchant_logo', 'v3d_get_merchant_logo');

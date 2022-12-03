@@ -1,5 +1,6 @@
 .v3d-iframe {
     border-width: 0px;
+    max-width: 100%;
 }
 
 .v3d-order-form input {
@@ -120,4 +121,9 @@ tr.v3d-bold-border-total {
 
 .v3d-order-pdf table.v3d-order-items-table {
     width: 100%
+}
+
+a.v3d-product-gallery-empty-a {
+    line-height: 0px; 
+    display: block;
 }

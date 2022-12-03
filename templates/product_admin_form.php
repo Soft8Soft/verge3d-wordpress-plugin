@@ -43,7 +43,7 @@
       </tbody>
       </tbody>
     </table>
-    <p class="submit"><input type="submit" class="button button-primary"></p>
+    <p class="submit"><input type="submit" value="<?php echo $product_id > -1 ? 'Update' : 'Create' ?>" class="button button-primary"></p>
   </form>
 </div>
 

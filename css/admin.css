@@ -137,3 +137,8 @@ table.order_items td {
 table.order_items td.check-column {
     padding: 0px;
 }
+
+.form-field input[type="number"] {
+    max-width: 100px;
+}
+

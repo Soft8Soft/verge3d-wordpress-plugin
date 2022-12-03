@@ -52,7 +52,7 @@ function v3d_woo_request_product_info() {
 
     var req = new XMLHttpRequest();
     // registered in php via v3d_load_woo_scripts
-    req.open('POST', v3d_woo_ajax_url);
+    req.open('POST', v3d_ajax_object.ajax_url);
     req.send(formData);
     req.addEventListener('load', function() {
         var response = JSON.parse(req.response);
@@ -62,16 +62,33 @@ function v3d_woo_request_product_info() {
     });
 }
 
+function v3d_on_product_update() {
+    if (v3d_ajax_object.switch_on_update) {
+        const cover_div = document.querySelector('div[data-thumb-v3d-app-cover-src]');
+        if (cover_div) {
+            const cover_src = cover_div.dataset.thumbV3dAppCoverSrc;
+            if (cover_src) {
+                const thumb = document.querySelector(`li img[src="${cover_src}"]`);
+                // HACK: switch twice
+                if (thumb) {
+                    thumb.click();
+                    setTimeout(e => thumb.click(), 30);
+                }
+            }
+        }
+    }
+    v3d_woo_request_product_info();
+}
 
 window.addEventListener('load', function() {
 
     var qtyElems = document.body.querySelectorAll('input.qty');
     for (var i = 0; i < qtyElems.length; i++)
-        qtyElems[i].onchange = v3d_woo_request_product_info;
+        qtyElems[i].onchange = v3d_on_product_update;
 
     var varFormElem = document.body.querySelector('.variations_form');
     if (varFormElem)
-        varFormElem.woocommerce_variation_has_changed = v3d_woo_request_product_info;
+        varFormElem.woocommerce_variation_has_changed = v3d_on_product_update;
 
 });
 

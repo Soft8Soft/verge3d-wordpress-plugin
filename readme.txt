@@ -4,7 +4,7 @@ Tags: verge3d,3d,webgl,3dweb,ecommerce
 Requires at least: 5.0
 Tested up to: 6.0.1
 Requires PHP: 7.0
-Stable tag: 4.1.0
+Stable tag: 4.2.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -67,6 +67,11 @@ No questions yet. Please ask them on the [Verge3D Forums](https://www.soft8soft.
 6. Easy-to-use application and orders management.
 
 == Changelog ==
+
+= 4.2 =
+* Support 3D items in WooCommerce product gallery
+* Fix identation in Gutenberg editor
+* Fix app layout on mobiles
 
 = 4.1 =
 * Support itemized orders with server-side price calculation.
