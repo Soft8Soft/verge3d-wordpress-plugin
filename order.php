@@ -34,7 +34,7 @@ function v3d_order_menu()
     switch ($action) {
     case 'createform':
         $order = array();
-        v3d_order_add_metaboxes($order, $order_id, $screen_id);
+        v3d_order_add_metaboxes($order, -1, $screen_id);
         v3d_display_order($order, -1);
         break;
     case 'create':
@@ -144,7 +144,7 @@ function v3d_order_menu()
 
 // Get order array by post ID
 function v3d_get_order_by_id($order_id) {
-    if (empty($order_id))
+    if (empty($order_id) or $order_id < 0)
         return null;
     return update_order_compat(json_decode(get_post_field('post_content', $order_id), true));
 }
@@ -171,6 +171,9 @@ function update_order_compat($order) {
 }
 
 function calc_subtotal_price($order_items, $round_result=false) {
+    if (empty($order_items))
+        return 0;
+
     $subtotal_price = 0;
 
     foreach ($order_items as $item) {
@@ -184,6 +187,9 @@ function calc_subtotal_price($order_items, $round_result=false) {
 }
 
 function calc_discount($order, $round_result=false) {
+    if (empty($order))
+        return 0;
+
     $subtotal_price = calc_subtotal_price($order['items']);
     $discount = $subtotal_price * $order['discount'] / 100;
 
@@ -194,6 +200,9 @@ function calc_discount($order, $round_result=false) {
 }
 
 function calc_tax($order, $round_result=false) {
+    if (empty($order))
+        return 0;
+
     $discounted_price = calc_subtotal_price($order['items']) - calc_discount($order);
     $tax = $discounted_price * $order['tax'] / 100;
 
@@ -204,6 +213,9 @@ function calc_tax($order, $round_result=false) {
 }
 
 function calc_total_price($order, $round_result=false) {
+    if (empty($order))
+        return 0;
+
     $total_price = calc_subtotal_price($order['items']);
 
     if (!empty($order['discount']))
@@ -236,6 +248,9 @@ function v3d_price($value) {
 function v3d_get_order_downloads($order_id) {
     $order = v3d_get_order_by_id($order_id);
     $downloads = array();
+
+    if (!$order)
+        return $downloads;
 
     foreach ($order['items'] as $item) {
         $product = v3d_find_product_by_sku($item['sku']);
@@ -964,7 +979,7 @@ function v3d_order_add_totals_metabox($post, $metabox) {
       <table class="form-table v3d-side-panel-table">
         <tr>
           <th scope="row">Subtotal:</th>
-          <td><?= v3d_price(calc_subtotal_price($order['items'], true)); ?></td>
+          <td><?= v3d_price(!empty($order['items']) ? calc_subtotal_price($order['items'], true) : 0); ?></td>
         </tr>
         <tr>
           <th scope="row">Total:</th>
@@ -1739,7 +1754,7 @@ function v3d_order_ajax_api() {
             $_REQUEST['action'] !== 'editform'))
         return;
 
-    $order_id = intval($_REQUEST['order']);
+    $order_id = !empty($_REQUEST['order']) ? intval($_REQUEST['order']) : -1;
 
     wp_enqueue_script('v3d_admin', plugin_dir_url( __FILE__ ) . 'js/order.js');
     wp_localize_script('v3d_admin', 'ajax_object',

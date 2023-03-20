@@ -53,6 +53,8 @@ function v3d_app_menu() {
                 'canvas_width' => V3D_DEFAULT_CANVAS_WIDTH,
                 'canvas_height' => V3D_DEFAULT_CANVAS_HEIGHT,
                 'allow_fullscreen' => 1,
+                'xr_spatial_tracking' => 1,
+                'loading' => 'auto',
             ),
         );
         $app_id = wp_insert_post($post_arr);
@@ -72,6 +74,8 @@ function v3d_app_menu() {
         $canvas_width = get_post_meta($app_id, 'canvas_width', true);
         $canvas_height = get_post_meta($app_id, 'canvas_height', true);
         $allow_fullscreen = get_post_meta($app_id, 'allow_fullscreen', true);
+        $xr_spatial_tracking = get_post_meta($app_id, 'xr_spatial_tracking', true);
+        $loading = get_post_meta($app_id, 'loading', true);
         $cover_att_id = get_post_meta($app_id, 'cover_attachment_id', true);
 
         $cover_src = wp_get_attachment_image_src($cover_att_id, 'full');
@@ -123,6 +127,26 @@ function v3d_app_menu() {
                   </th>
                   <td>
                     <input type="checkbox" id="allow_fullscreen" name="allow_fullscreen" value="1" <?php checked($allow_fullscreen, 1) ?>>
+                  </td>
+                </tr>
+                <tr class="form-field">
+                  <th scope="row">
+                    <label for="xr_spatial_tracking">Allow AR/VR</label>
+                  </th>
+                  <td>
+                    <input type="checkbox" id="xr_spatial_tracking" name="xr_spatial_tracking" value="1" <?php checked($xr_spatial_tracking, 1) ?>>
+                  </td>
+                </tr>
+                <tr class="form-field">
+                  <th scope="row">
+                    <label for="loading">Loading</label>
+                  </th>
+                  <td>
+                    <select id="loading" name="loading">
+                      <option value="auto" <?= $loading == 'auto' ? 'selected' : '' ?>>Auto</option>
+                      <option value="lazy" <?= $loading == 'lazy' ? 'selected' : '' ?>>Lazy</option>
+                      <option value="eager" <?= $loading == 'eager' ? 'selected' : '' ?>>Eager</option>
+                    </select>
                   </td>
                 </tr>
                 <tr class="form-field">
@@ -186,6 +210,8 @@ function v3d_app_menu() {
             $canvas_width = (!empty($_POST['canvas_width'])) ? intval($_POST['canvas_width']) : '';
             $canvas_height = (!empty($_POST['canvas_height'])) ? intval($_POST['canvas_height']) : '';
             $allow_fullscreen = !empty($_POST['allow_fullscreen']) ? 1 : 0;
+            $xr_spatial_tracking = !empty($_POST['xr_spatial_tracking']) ? 1 : 0;
+            $loading = !empty($_POST['loading']) ? $_POST['loading'] : 'auto';
             $cover_att_id = !empty($_POST['cover_attachment_id']) ? absint($_POST['cover_attachment_id']) : 0;
 
             if (!empty(sanitize_text_field($_POST['title']))) {
@@ -196,6 +222,8 @@ function v3d_app_menu() {
                         'canvas_width' => $canvas_width,
                         'canvas_height' => $canvas_height,
                         'allow_fullscreen' => $allow_fullscreen,
+                        'xr_spatial_tracking' => $xr_spatial_tracking,
+                        'loading' => $loading,
                         'cover_attachment_id' => $cover_att_id,
                     ),
                 );
@@ -471,6 +499,13 @@ class V3D_App_List_Table extends WP_List_Table {
     }
 }
 
+function v3d_iframe_allow_html($name, $value) {
+    if (!empty($value))
+        return $name.';';
+    else
+        return $name.' \'none\';';
+}
+
 function v3d_gen_app_iframe_html($app_id, $wrap_to_figure=false) {
     $url = v3d_get_app_url($app_id);
     if (empty($url))
@@ -479,6 +514,8 @@ function v3d_gen_app_iframe_html($app_id, $wrap_to_figure=false) {
     $canvas_width = get_post_meta($app_id, 'canvas_width', true);
     $canvas_height = get_post_meta($app_id, 'canvas_height', true);
     $allow_fullscreen = get_post_meta($app_id, 'allow_fullscreen', true);
+    $xr_spatial_tracking = get_post_meta($app_id, 'xr_spatial_tracking', true);
+    $loading = get_post_meta($app_id, 'loading', true);
 
     ob_start();
     ?>
@@ -486,7 +523,8 @@ function v3d_gen_app_iframe_html($app_id, $wrap_to_figure=false) {
       <iframe id="v3d_iframe" class="v3d-iframe" src="<?php echo esc_url($url) ?>"
         width="<?php echo esc_attr($canvas_width) ?>"
         height="<?php echo esc_attr($canvas_height) ?>"
-        <?= !empty($allow_fullscreen) ? 'allow="fullscreen"' : 'allow="fullscreen \'none\'"' ?>>
+        allow="<?= v3d_iframe_allow_html('fullscreen', $allow_fullscreen) ?> <?= v3d_iframe_allow_html('xr-spatial-tracking', $xr_spatial_tracking) ?>"
+        loading="<?= !empty($loading) ? esc_attr($loading) : 'auto' ?>">
       </iframe>
     <?= $wrap_to_figure ? '</figure>' : ''; ?>
     <?php
