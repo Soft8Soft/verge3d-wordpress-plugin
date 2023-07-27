@@ -2,26 +2,38 @@
 
 function v3d_load_woo_scripts() {
     global $post;
-    wp_enqueue_script('v3d_admin', plugin_dir_url( __FILE__ ) . 'js/woo_product.js');
+    wp_enqueue_script('v3d_woo_product', plugin_dir_url( __FILE__ ) . 'js/woo_product.js');
 
     $switch_on_update = get_post_meta(get_the_ID(), 'v3d_app_show_gallery', true) &&
           get_post_meta(get_the_ID(), 'v3d_app_switch_on_update', true);
 
-    wp_localize_script('v3d_admin', 'v3d_ajax_object',
+    wp_localize_script('v3d_woo_product', 'v3d_ajax_object',
         array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'switch_on_update' => $switch_on_update
         ));
-
 }
 add_action('wp_enqueue_scripts', 'v3d_load_woo_scripts');
+
+
+function v3d_bootstap_woo_product_composite($dependencies) {
+    wp_register_script('v3d_woo_product_composite', plugin_dir_url(__FILE__) . 'js/woo_product_composite.js');
+    $dependencies[] = 'v3d_woo_product_composite';
+    return $dependencies;
+}
+
+function v3d_plugins_loaded() {
+    global $woocommerce_composite_products;
+    add_filter('woocommerce_composite_script_dependencies', 'v3d_bootstap_woo_product_composite');
+}
+add_action('plugins_loaded', 'v3d_plugins_loaded');
 
 
 // Verge3D tab in product data (admin)
 
 function v3d_product_tab($tabs) {
     $tabs['verge3d'] = array(
-        'label'	 => __('Verge3D', 'verge3d'),
+        'label'  => __('Verge3D', 'verge3d'),
         'target' => 'v3d_product_options',
         'class'  => array('show_if_verge3d'),
         'priority' => 100
@@ -223,7 +235,6 @@ function v3d_get_product_info() {
         $response['price'] = floatval($product->get_price());
 
         $response['weight'] = floatval($product->get_weight());
-
         $response['length'] = floatval($product->get_length());
         $response['width'] = floatval($product->get_width());
         $response['height'] = floatval($product->get_height());
@@ -249,7 +260,6 @@ function v3d_get_product_info() {
 
                 if (!empty($variation->get_weight()))
                     $response['weight'] = floatval($variation->get_weight());
-
                 if (!empty($variation->get_length()))
                     $response['length'] = floatval($variation->get_length());
                 if (!empty($variation->get_width()))
@@ -290,7 +300,82 @@ function v3d_get_product_info() {
                 array_push($response['children'], $child_response);
             }
 
+        } else if ($product->is_type('composite')) {
+
+            $response['components'] = array();
+
+            if (!empty($_REQUEST['components'])) {
+                foreach ($_REQUEST['components'] as $comp_id => $comp) {
+
+                    $comp_response = array();
+
+                    $comp_response['title'] = $comp['title'];
+                    $comp_response['id'] = $comp_id;
+
+                    $comp_response['type'] = $comp['product_type'];
+                    $comp_response['quantity'] = intval($comp['quantity']);
+
+                    $child = wc_get_product($comp['product_id']);
+
+                    if (!empty($child)) {
+                        $comp_response['name'] = $comp['selection_title'];
+                        $comp_response['sku'] = $child->get_sku();
+                        $comp_response['weight'] = floatval($child->get_weight());
+                        $comp_response['length'] = floatval($child->get_length());
+                        $comp_response['width'] = floatval($child->get_width());
+                        $comp_response['height'] = floatval($child->get_height());
+                        $comp_response['attributes'] = v3d_product_get_attributes($child);
+                    } else {
+                        $comp_response['name'] = '';
+                        $comp_response['sku'] = '';
+                        $comp_response['weight'] = 0;
+                        $comp_response['length'] = 0;
+                        $comp_response['width'] = 0;
+                        $comp_response['height'] = 0;
+                        $comp_response['attributes'] = [];
+                    }
+
+                    if ($comp['product_type'] == 'variable') {
+                        if (!empty($comp['variation_id'])) {
+                            $variation = wc_get_product($comp['variation_id']);
+
+                            $comp_response['name'] = $variation->get_name();
+
+                            if (!empty($variation->get_sku()))
+                                $comp_response['sku'] = $variation->get_sku();
+
+                            if (!empty($variation->get_weight()))
+                                $comp_response['weight'] = floatval($variation->get_weight());
+                            if (!empty($variation->get_length()))
+                                $comp_response['length'] = floatval($variation->get_length());
+                            if (!empty($variation->get_width()))
+                                $comp_response['width'] = floatval($variation->get_width());
+                            if (!empty($variation->get_height()))
+                                $comp_response['height'] = floatval($variation->get_height());
+
+                            foreach ($comp['attributes'] as $attr_key => $attr_value) {
+                                $comp_response['attributes'][$attr_key] = $attr_value;
+                            }
+                        } else {
+                            // nothing selected, reset all attributes to empty strings
+                            foreach ($comp_response['attributes'] as $attr_key => $attr_value) {
+                                $comp_response['attributes'][$attr_key] = '';
+                            }
+                        }
+                    }
+
+                    // make empty array an object to be properly handled by JSON encode
+                    if (empty($comp_response['attributes']))
+                        $comp_response['attributes'] = (object)array();
+
+                    array_push($response['components'], $comp_response);
+                }
+            }
         }
+
+        // make empty array an object to be properly handled by JSON encode
+        if (empty($response['attributes']))
+            $response['attributes'] = (object)array();
 
     } else {
         $response['status'] = 'error';
@@ -301,3 +386,4 @@ function v3d_get_product_info() {
 }
 add_action('wp_ajax_v3d_woo_get_product_info', 'v3d_get_product_info');
 add_action('wp_ajax_nopriv_v3d_woo_get_product_info', 'v3d_get_product_info');
+

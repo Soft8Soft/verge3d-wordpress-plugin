@@ -4,7 +4,7 @@ Tags: verge3d,3d,webgl,3dweb,ecommerce
 Requires at least: 5.0
 Tested up to: 6.0.1
 Requires PHP: 7.0
-Stable tag: 4.3.0
+Stable tag: 4.4.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,7 @@ Verge3D application publising and e-commerce plugin for WordPress.
 == Description ==
 Verge3D is the most artist-friendly toolkit for creating interactive WebGL-based and immersive AR/VR experiences. Among the features of this framework are top-class graphics, integration with your favorite modeling suites, efficient web-friendly format for loading assets, seamless integration with WordPress and WooCommerce plugin. Interactivity is enabled with Puzzles, an intuitive and easy-to-learn visual scripting environment.
 
-Verge3D can be used to create product configurators, 3D presentations, online stores, e-learning apps, 3D portfolios, browser games and more.
+Verge3D can be used to create product configurators, 3D presentations, online stores, e-learning apps, 3D portfolios, browser games, and more.
 
 You can try this plugin live using this [sandbox website](https://sandbox.soft8soft.com/) or follow the quick-start guide [here](https://www.soft8soft.com/making-3d-product-configurator-for-woocommerce/).
 
@@ -31,7 +31,7 @@ On the other hand, physically based rendering (PBR) which comes with Verge3D sim
 
 = Use familiar tools =
 
-We designed Verge3D to be closely integrated with your favorite tools. You can create your 3D content in 3ds Max or Blender, and export straight to a web page. You can also preview your scene in the browser using the Sneak Peek feature.
+We designed Verge3D to be closely integrated with your favorite tools. You can create your 3D content in Blender, 3ds Max, or Maya, and export straight to a web page. You can also preview your scene in the browser using the Sneak Peek feature.
 
 But, of course, aside from the 3D part, there is also web! With Verge3D, you can completely forget about building HTML/CSS layouts and JavaScript coding by
 hand. Verge3D perfectly works with WordPress and WooCoommerce, as well as the design software such as Webflow or Google Web Designer.
@@ -61,17 +61,24 @@ No questions yet. Please ask them on the [Verge3D Forums](https://www.soft8soft.
 == Screenshots ==
 1. 3D product customizer with WooCommerce integration
 2. Scooter - interactive configurator with 1000000+ combinations
-3. Verge3D features direct export from Blender or 3ds Max
+3. Verge3D features direct export from Blender, 3ds Max, or Maya
 4. Used by NASA and other companies and organizations throughout the world
 5. Interactive WebGL-based online shop
 6. Easy-to-use application and orders management.
 
 == Changelog ==
 
+= 4.4 =
+* Verge3D widget for Elementor.
+* Support WooCommerce Composite Products extension.
+
+= 4.3 =
+* Verge3D 4.3 version bump.
+
 = 4.2 =
-* Support 3D items in WooCommerce product gallery
-* Fix identation in Gutenberg editor
-* Fix app layout on mobiles
+* Support 3D items in WooCommerce product gallery.
+* Fix indentation in Gutenberg editor.
+* Fix app layout on mobiles.
 
 = 4.1 =
 * Support itemized orders with server-side price calculation.

@@ -35,6 +35,28 @@ function v3d_woo_form_get_attributes(formData) {
     }
 }
 
+/**
+ * Get components of the composite product
+ */
+function v3d_woo_form_get_components(formData) {
+    if (window.v3d_woo_composite) {
+        const components = window.v3d_woo_composite.api.get_composite_configuration();
+        for (const id in components) {
+            const component = components[id];
+            for (const key in component) {
+                if (key == 'selection_meta')
+                    for (let i = 0; i < component[key].length; i++) {
+                        const meta_key = component[key][i].meta_key.toLowerCase();
+                        const meta_value = component[key][i].meta_value;
+                        formData.append(`components[${id}][attributes][${meta_key}]`, meta_value);
+                    }
+                else
+                    formData.append(`components[${id}][${key}]`, component[key]);
+            }
+        }
+    }
+}
+
 function v3d_woo_get_product_info(callback) {
     v3d_woo_product_info_cb = callback;
     v3d_woo_request_product_info();
@@ -49,6 +71,7 @@ function v3d_woo_request_product_info() {
     v3d_woo_form_get_product_id(formData);
     v3d_woo_form_get_variation_id(formData);
     v3d_woo_form_get_attributes(formData);
+    v3d_woo_form_get_components(formData);
 
     var req = new XMLHttpRequest();
     // registered in php via v3d_load_woo_scripts
@@ -79,6 +102,7 @@ function v3d_on_product_update() {
     }
     v3d_woo_request_product_info();
 }
+window.v3d_on_product_update = v3d_on_product_update;
 
 window.addEventListener('load', function() {
 
