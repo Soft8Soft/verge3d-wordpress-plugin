@@ -3,7 +3,7 @@
 Plugin Name: Verge3D
 Plugin URI: https://www.soft8soft.com/verge3d
 Description: Verge3D is the most artist-friendly toolkit for creating interactive web-based experiences. It can be used to create product configurators, 3D presentations, online stores, e-learning apps, 3D portfolios, browser games and more.
-Version: 4.4.0
+Version: 4.5.2
 Author: Soft8Soft LLC
 Author URI: https://www.soft8soft.com
 License: GPLv2 or later
@@ -1328,17 +1328,17 @@ function v3d_custom_products_cb() {
 
 
 function v3d_init_custom_styles() {
-    wp_enqueue_style('v3d_main', plugin_dir_url( __FILE__ ) . 'css/main.css');
+    wp_enqueue_style('v3d_main_style', plugin_dir_url( __FILE__ ) . 'css/main.css');
 }
 add_action('wp_enqueue_scripts', 'v3d_init_custom_styles');
 
 function v3d_init_custom_styles_admin() {
-    wp_enqueue_style('v3d_admin', plugin_dir_url( __FILE__ ) . 'css/admin.css');
+    wp_enqueue_style('v3d_admin_style', plugin_dir_url( __FILE__ ) . 'css/admin.css');
 }
 add_action('admin_enqueue_scripts', 'v3d_init_custom_styles_admin');
 
 function v3d_init_custom_scripts_admin($page) {
-    wp_enqueue_script('v3d_admin', plugin_dir_url( __FILE__ ) . 'js/admin.js');
+    wp_enqueue_script('v3d_admin_script', plugin_dir_url( __FILE__ ) . 'js/admin.js');
 }
 add_action('admin_enqueue_scripts', 'v3d_init_custom_scripts_admin');
 

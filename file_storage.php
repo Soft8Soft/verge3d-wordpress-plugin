@@ -47,7 +47,7 @@ function v3d_api_get_file(WP_REST_Request $request) {
 
         if (is_file($file)) {
             // hack to prevent excessive JSON encoding
-            header('Content-Type: application/json');
+            header('Content-Type: text/plain');
             if (get_option('v3d_cross_domain'))
                 header('Access-Control-Allow-Origin: *');
             print_r(file_get_contents($file));

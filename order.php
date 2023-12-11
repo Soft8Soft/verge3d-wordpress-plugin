@@ -355,6 +355,8 @@ function v3d_terminal($command) {
 
     $output = '';
 
+    $command = escapeshellcmd($command);
+
     if (function_exists('system')) {
         ob_start();
         system($command, $return_var);
@@ -449,7 +451,6 @@ function v3d_gen_email_attachments($order, $order_id, $gen_custom, $gen_pdftypes
             $pdf = v3d_get_attachments_tmp_dir($attachments).$pdftype.'.pdf';
 
             $success = file_put_contents($pdf_html, $pdf_html_text);
-            //copy($pdf_html, '/var/www/wordpress/pdf.html');
 
             if ($success) {
                 // NOTE: undocumented wkhtmltopdf feature

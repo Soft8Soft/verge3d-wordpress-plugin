@@ -615,9 +615,6 @@ function v3d_upload_app_file() {
     $upload_dir = v3d_get_upload_dir();
     $upload_app_dir = $upload_dir.$app_id;
 
-    //if (is_dir($upload_app_dir))
-    //    v3d_rmdir($upload_app_dir);
-
     if (!is_dir($upload_app_dir))
         mkdir($upload_app_dir, 0777, true);
 
@@ -629,6 +626,13 @@ function v3d_upload_app_file() {
             $fullpath = explode("/", $fullpath);
             array_shift($fullpath);
             $fullpath = implode("/", $fullpath);
+
+            // prevent harmful file types to be uploaded to the server
+            $ext = strtolower(pathinfo($fullpath, PATHINFO_EXTENSION));
+            $denied = ['php', 'phps', 'phar', 'exe'];
+            if (in_array($ext, $denied)) {
+                wp_die('error');
+            }
 
             $path = dirname($fullpath);
 
